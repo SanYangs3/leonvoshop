@@ -27,6 +27,3 @@ INSERT INTO users (username, password, email, phone, status, role) VALUES
 ('赵', '123456', 'zhao.user@example.com', '13000130000', 1, 'USER'),
 ('牟', '123456', 'mou.user@example.com', '15000150000', 1, 'USER'),
 ('欧阳', '123456', 'ouyang.user@example.com', '13200132000', 1, 'USER');
-
--- 查看插入的数据
-SELECT id, username, password, email, role, status FROM users ORDER BY role DESC, username;
