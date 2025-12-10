@@ -142,114 +142,105 @@ INSERT INTO `products` (`name`, `price`, `description`, `image_url`, `brand`, `s
 **2025.12.10  ——沐衡**
 
 **根据讨论结果喂给d老师创建数据库并建立了其中的八个表的雏形。**
+2025.12.10---羊羊羊
+
+因为order是mysql的关键词，所以将order改名为ordered
 
 ```sql
--- 创建数据库
-CREATE DATABASE IF NOT EXISTS `ecommerce_db` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-USE `ecommerce_db`;
+-- 1. 用户表 user
+CREATE TABLE user (
+    uid INT PRIMARY KEY NOT NULL AUTO_INCREMENT COMMENT '用户ID',
+    username VARCHAR(50) NOT NULL COMMENT '用户名',
+    password VARCHAR(255) NOT NULL COMMENT '密码',
+    email VARCHAR(100) COMMENT '邮箱',
+    phone VARCHAR(20) COMMENT '电话',
+    status TINYINT DEFAULT 1 COMMENT '状态：1正常，0禁用',
+    avatar VARCHAR(255) COMMENT '头像',
+    role VARCHAR(10) COMMENT '角色：admin/user',
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
+) COMMENT '用户表';
 
--- 1. 用户表 (user)
-CREATE TABLE IF NOT EXISTS `user` (
-    `uid` INT AUTO_INCREMENT PRIMARY KEY COMMENT '用户ID',
-    `username` VARCHAR(50) NOT NULL COMMENT '用户名',
-    `password` VARCHAR(255) NOT NULL COMMENT '密码',
-    `email` VARCHAR(100) COMMENT '邮箱',
-    `phone` VARCHAR(20) COMMENT '手机号',
-    `status` TINYINT DEFAULT 1 COMMENT '状态：1正常，0禁用',
-    `avatar` VARCHAR(255) COMMENT '头像地址',
-    `role` VARCHAR(20) DEFAULT 'user' COMMENT '角色：admin/user',
-    `create_time` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `update_time` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
+-- 2. 商品表 product
+CREATE TABLE product (
+    pid INT PRIMARY KEY NOT NULL AUTO_INCREMENT COMMENT '商品ID',
+    name VARCHAR(100) NOT NULL COMMENT '商品名称',
+    price DECIMAL(10, 2) NOT NULL COMMENT '价格',
+    description TEXT COMMENT '描述',
+    CPU VARCHAR(50) COMMENT '处理器',
+    GPU VARCHAR(50) COMMENT '显卡',
+    storage VARCHAR(50) COMMENT '内存',
+    size VARCHAR(20) COMMENT '屏幕尺寸',
+    type VARCHAR(50) COMMENT '产品类型',
+    picture VARCHAR(255) COMMENT '默认图片',
+    stock INT NOT NULL DEFAULT 0 COMMENT '库存',
+    rating INT DEFAULT 0 COMMENT '评分（推荐度）'
+) COMMENT '商品表';
 
--- 2. 商品表 (product)
-CREATE TABLE IF NOT EXISTS `product` (
-    `pid` INT AUTO_INCREMENT PRIMARY KEY COMMENT '商品ID',
-    `name` VARCHAR(255) NOT NULL COMMENT '商品名称',
-    `price` DECIMAL(10,2) NOT NULL COMMENT '价格',
-    `description` TEXT COMMENT '描述',
-    `CPU` VARCHAR(100) COMMENT '处理器',
-    `GPU` VARCHAR(100) COMMENT '显卡',
-    `storage` VARCHAR(100) COMMENT '内存',
-    `size` VARCHAR(50) COMMENT '屏幕尺寸',
-    `type` VARCHAR(50) COMMENT '产品类型',
-    `picture` VARCHAR(255) DEFAULT 'default.jpg' COMMENT '默认图片',
-    `stock` INT NOT NULL DEFAULT 0 COMMENT '库存',
-    `rating` INT DEFAULT 0 COMMENT '评分'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品表';
+-- 3. 商家表 business
+CREATE TABLE business (
+    bid INT PRIMARY KEY NOT NULL AUTO_INCREMENT COMMENT '商家ID',
+    bname VARCHAR(100) NOT NULL COMMENT '商家名称',
+    password VARCHAR(255) NOT NULL COMMENT '密码'
+) COMMENT '商家表';
 
--- 3. 商家表 (business)
-CREATE TABLE IF NOT EXISTS `business` (
-    `bid` INT AUTO_INCREMENT PRIMARY KEY COMMENT '商家ID',
-    `bname` VARCHAR(100) NOT NULL COMMENT '商家名称',
-    `password` VARCHAR(255) NOT NULL COMMENT '密码'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商家表';
+-- 4. 商家-商品关联表 business_product
+CREATE TABLE business_product (
+    bpid INT PRIMARY KEY NOT NULL AUTO_INCREMENT COMMENT '关联ID',
+    bid INT NOT NULL COMMENT '商家ID',
+    pid INT NOT NULL COMMENT '商品ID',
+    FOREIGN KEY (bid) REFERENCES business(bid),
+    FOREIGN KEY (pid) REFERENCES product(pid)
+) COMMENT '商家-商品关联表';
 
--- 4. 商家-商品关联表 (business_product)
-CREATE TABLE IF NOT EXISTS `business_product` (
-    `bpid` INT AUTO_INCREMENT PRIMARY KEY COMMENT '关联ID',
-    `bid` INT NOT NULL COMMENT '商家ID',
-    `pid` INT NOT NULL COMMENT '商品ID',
-    FOREIGN KEY (`bid`) REFERENCES `business`(`bid`) ON DELETE CASCADE,
-    FOREIGN KEY (`pid`) REFERENCES `product`(`pid`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商家-商品关联表';
+-- 5. 身份表 identity
+CREATE TABLE identity (
+    iid INT PRIMARY KEY NOT NULL AUTO_INCREMENT COMMENT '身份ID',
+    level INT DEFAULT 0 COMMENT '等级：0~5',
+    student TINYINT DEFAULT 0 COMMENT '是否学生：1学生，0普通',
+    points INT DEFAULT 0 COMMENT '积分：1元1分，5000分一段',
+    uid INT COMMENT '用户ID',
+    FOREIGN KEY (uid) REFERENCES user(uid)
+) COMMENT '身份表';
 
--- 5. 订单表 (`order`) -- 注意：order是SQL关键字，建议用反引号包裹
-CREATE TABLE IF NOT EXISTS `order` (
-    `oid` INT AUTO_INCREMENT PRIMARY KEY COMMENT '订单ID',
-    `status` TINYINT DEFAULT 0 COMMENT '状态：0待发货、1已发货、2已收货、3取消订单',
-    `order_time` VARCHAR(50) COMMENT '下单时间',
-    `amount` INT NOT NULL COMMENT '商品件数',
-    `money` FLOAT NOT NULL COMMENT '实付款',
-    `pid` INT COMMENT '商品ID',
-    `uid` INT COMMENT '用户ID',
-    `bid` INT COMMENT '商家ID',
-    `address` VARCHAR(255) COMMENT '收货地址',
-    `momo` VARCHAR(50) COMMENT '收件人昵称',
-    `phone` VARCHAR(20) COMMENT '收件人电话',
-    `remark` TEXT COMMENT '备注',
-    FOREIGN KEY (`pid`) REFERENCES `product`(`pid`) ON DELETE SET NULL,
-    FOREIGN KEY (`uid`) REFERENCES `user`(`uid`) ON DELETE SET NULL,
-    FOREIGN KEY (`bid`) REFERENCES `business`(`bid`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单表';
+-- 6. 购物车表 cart
+CREATE TABLE cart (
+    cid INT PRIMARY KEY NOT NULL AUTO_INCREMENT COMMENT '购物车ID',
+    uid INT COMMENT '用户ID',
+    pid INT COMMENT '商品ID',
+    FOREIGN KEY (uid) REFERENCES user(uid),
+    FOREIGN KEY (pid) REFERENCES product(pid)
+) COMMENT '购物车表';
 
--- 6. 身份表 (identity)
-CREATE TABLE IF NOT EXISTS `identity` (
-    `iid` INT AUTO_INCREMENT PRIMARY KEY COMMENT '身份ID',
-    `level` TINYINT DEFAULT 0 COMMENT '等级：0~5',
-    `student` TINYINT DEFAULT 0 COMMENT '是否学生：1学生、0普通',
-    `points` INT DEFAULT 0 COMMENT '积分',
-    `uid` INT COMMENT '用户ID',
-    FOREIGN KEY (`uid`) REFERENCES `user`(`uid`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='身份表';
+-- 7. 订单表 ordered
+CREATE TABLE ordered (
+    oid INT PRIMARY KEY NOT NULL AUTO_INCREMENT COMMENT '订单ID',
+    status INT DEFAULT 0 COMMENT '状态：0待发货、1已发货、2已收货、3取消订单',
+    order_time VARCHAR(50) COMMENT '下单时间',
+    amount INT NOT NULL COMMENT '商品件数',
+    money FLOAT NOT NULL COMMENT '实付款',
+    pid INT COMMENT '商品ID',
+    uid INT COMMENT '用户ID',
+    bid INT COMMENT '商家ID',
+    address VARCHAR(255) COMMENT '收货地址',
+    momo VARCHAR(50) COMMENT '收件人昵称',
+    phone VARCHAR(20) COMMENT '收件人电话',
+    remark VARCHAR(255) COMMENT '备注',
+    FOREIGN KEY (pid) REFERENCES product(pid),
+    FOREIGN KEY (uid) REFERENCES user(uid),
+    FOREIGN KEY (bid) REFERENCES business(bid)
+) COMMENT '订单表';
 
--- 7. 购物车表 (cart)
-CREATE TABLE IF NOT EXISTS `cart` (
-    `cid` INT AUTO_INCREMENT PRIMARY KEY COMMENT '购物车ID',
-    `uid` INT COMMENT '用户ID',
-    `pid` INT COMMENT '商品ID',
-    FOREIGN KEY (`uid`) REFERENCES `user`(`uid`) ON DELETE CASCADE,
-    FOREIGN KEY (`pid`) REFERENCES `product`(`pid`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='购物车表';
-
--- 8. 评论表 (feedback)
-CREATE TABLE IF NOT EXISTS `feedback` (
-    `fid` INT AUTO_INCREMENT PRIMARY KEY COMMENT '评论ID',
-    `uid` INT COMMENT '用户ID',
-    `pid` INT COMMENT '商品ID',
-    `feed_time` VARCHAR(50) COMMENT '评论时间',
-    `star` TINYINT DEFAULT 5 COMMENT '商品评级（1-5）',
-    `comment` TEXT COMMENT '评论具体内容',
-    FOREIGN KEY (`uid`) REFERENCES `user`(`uid`) ON DELETE CASCADE,
-    FOREIGN KEY (`pid`) REFERENCES `product`(`pid`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='评论表';
-
--- 创建索引以提高查询性能
-CREATE INDEX idx_user_username ON `user`(`username`);
-CREATE INDEX idx_product_name ON `product`(`name`);
-CREATE INDEX idx_order_status ON `order`(`status`);
-CREATE INDEX idx_order_time ON `order`(`order_time`);
-CREATE INDEX idx_feedback_star ON `feedback`(`star`);
-CREATE INDEX idx_identity_level ON `identity`(`level`);
+-- 8. 评论表 feedback
+CREATE TABLE feedback (
+    fid INT PRIMARY KEY NOT NULL AUTO_INCREMENT COMMENT '评论ID',
+    uid INT COMMENT '用户ID',
+    pid INT COMMENT '商品ID',
+    feed_time VARCHAR(50) COMMENT '评论时间',
+    star INT DEFAULT 5 COMMENT '商品评级',
+    comment TEXT COMMENT '评论内容',
+    FOREIGN KEY (uid) REFERENCES user(uid),
+    FOREIGN KEY (pid) REFERENCES product(pid)
+) COMMENT '评论表';
 ```
 
