@@ -2,7 +2,6 @@
 package com.lenovo.mall_backend.controller;
 
 import com.lenovo.mall_backend.entity.Order;
-import com.lenovo.mall_backend.entity.OrderItem;
 import com.lenovo.mall_backend.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -13,7 +12,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
