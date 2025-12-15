@@ -212,26 +212,8 @@ CREATE TABLE cart (
     FOREIGN KEY (pid) REFERENCES product(pid)
 ) COMMENT '购物车表';
 
--- 7. 订单表 ordered
-CREATE TABLE ordered (
-    oid INT PRIMARY KEY NOT NULL AUTO_INCREMENT COMMENT '订单ID',
-    status INT DEFAULT 0 COMMENT '状态：0待发货、1已发货、2已收货、3取消订单',
-    order_time VARCHAR(50) COMMENT '下单时间',
-    amount INT NOT NULL COMMENT '商品件数',
-    money FLOAT NOT NULL COMMENT '实付款',
-    pid INT COMMENT '商品ID',
-    uid INT COMMENT '用户ID',
-    bid INT COMMENT '商家ID',
-    address VARCHAR(255) COMMENT '收货地址',
-    momo VARCHAR(50) COMMENT '收件人昵称',
-    phone VARCHAR(20) COMMENT '收件人电话',
-    remark VARCHAR(255) COMMENT '备注',
-    FOREIGN KEY (pid) REFERENCES product(pid),
-    FOREIGN KEY (uid) REFERENCES user(uid),
-    FOREIGN KEY (bid) REFERENCES business(bid)
-) COMMENT '订单表';
 
--- 8. 评论表 feedback
+-- 7. 评论表 feedback
 CREATE TABLE feedback (
     fid INT PRIMARY KEY NOT NULL AUTO_INCREMENT COMMENT '评论ID',
     uid INT COMMENT '用户ID',
@@ -242,5 +224,35 @@ CREATE TABLE feedback (
     FOREIGN KEY (uid) REFERENCES user(uid),
     FOREIGN KEY (pid) REFERENCES product(pid)
 ) COMMENT '评论表';
+
+--因为原来的订单表有点问题，所以把订单表给改了一下，分为了订单表和订单详情表。可以把原来的ordered表删除，再执行下面的语句。
+
+-- 8.订单表 (ordered)
+CREATE TABLE ordered (
+    oid INT PRIMARY KEY NOT NULL AUTO_INCREMENT COMMENT '订单ID',
+    status INT DEFAULT 0 COMMENT '状态',
+    order_time DATETIME COMMENT '订单时间',
+    amount DECIMAL(10, 2) DEFAULT 0.00 COMMENT '实付款',
+    uid INT COMMENT '用户ID',
+    receiver_address VARCHAR(255) COMMENT '联系地址',
+    receiver_name VARCHAR(50) COMMENT '联系人',
+    receiver_phone VARCHAR(20) COMMENT '联系电话',
+    remark TEXT COMMENT '备注',
+    FOREIGN KEY (uid) REFERENCES user(uid) ON DELETE RESTRICT ON UPDATE CASCADE
+) COMMENT '订单表';
+
+-- 9.订单详情表 (orderItem)
+CREATE TABLE orderItem (
+    id INT PRIMARY KEY NOT NULL AUTO_INCREMENT COMMENT '主键',
+    oid INT NOT NULL COMMENT '订单ID',
+    pid INT NOT NULL COMMENT '商品编号',
+    name VARCHAR(100) NOT NULL COMMENT '商品名称',
+    price DECIMAL(10, 2) NOT NULL COMMENT '商品单价',
+    quantity INT NOT NULL DEFAULT 1 COMMENT '购买数量',
+    bid INT NOT NULL COMMENT '商家ID',
+    FOREIGN KEY (oid) REFERENCES ordered(oid) ON DELETE CASCADE,
+    FOREIGN KEY (pid) REFERENCES product(pid) ON DELETE RESTRICT,
+    FOREIGN KEY (bid) REFERENCES business(bid) ON DELETE RESTRICT
+) COMMENT '订单详情表';
 ```
 
