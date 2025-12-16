@@ -552,3 +552,241 @@ INSERT INTO cart (uid, pid) VALUES
 3
 ```
 
+完成了“后端相关”的部分功能
+后端相关
+功能2.获取所有商品数
+已在Product Controller中实现
+请求路径：/api/products/count
+请求方式：GET
+返回格式：
+{
+  "code": 1,
+  "msg": null,
+  "data": 156
+}
+
+功能3.获取所有订单数
+已在OrderedController中实现
+请求路径：/api/orders/count
+请求方式：GET
+返回格式：
+{
+  "code": 1,
+  "msg": null,
+  "data": 125
+}
+
+功能4：获取总销售额
+已在OrderedController中实现
+请求路径：/api/orders/total-sales
+请求方式：GET
+返回格式：
+{
+  "code": 1,
+  "msg": null,
+  "data": 156780.50
+}
+
+功能5：获取昨天和今天的订单数对比（包含百分比）
+已在StatisticsController中实现
+请求路径：/api/statistics/order-comparison
+请求方式：GET
+返回格式：
+{
+  "code": 1,
+  "msg": null,
+  "data": {
+    "todayValue": 15,
+    "yesterdayValue": 12,
+    "changePercent": 25.00
+  }
+}
+说明：changePercent正数表示增长，负数表示减少
+
+功能8：获取昨天和今天的销售额对比（包含百分比）
+已在StatisticsController中实现
+请求路径：/api/statistics/sales-comparison
+请求方式：GET
+返回格式：
+{
+  "code": 1,
+  "msg": null,
+  "data": {
+    "todaySales": 12800.75,
+    "yesterdaySales": 9800.50,
+    "changePercent": 30.62
+  }
+}
+
+功能9：获取昨天和今天的商品数对比（包含百分比）
+已在StatisticsController中实现
+请求路径：/api/statistics/product-comparison
+请求方式：GET
+返回格式：
+{
+  "code": 1,
+  "msg": null,
+  "data": {
+    "todayValue": 12,
+    "yesterdayValue": 8,
+    "changePercent": 50.00
+  }
+}
+
+功能10：获取今日低库存商品数
+已在ProductController中实现
+请求路径：/api/products/low-stock/count
+请求方式：GET
+返回格式：
+{
+  "code": 1,
+  "msg": null,
+  "data": 5
+}
+
+功能11：获取今日各省份订单数
+已在OrderedController中实现
+请求路径：/api/orders/today/statistics/by-province
+请求方式：GET
+返回格式：
+{
+  "code": 1,
+  "msg": null,
+  "data": [
+    {
+      "province": "北京市",
+      "today_order_count": 8
+    },
+    {
+      "province": "上海市",
+      "today_order_count": 6
+    }
+  ]
+}
+
+功能17：获取所有商品信息
+已在ProductController中实现
+请求路径：/api/products
+请求方式：GET
+返回格式：
+{
+  "code": 1,
+  "msg": null,
+  "data": [
+    {
+      "pid": 1,
+      "name": "iPhone 15 Pro",
+      "price": 8999.00,
+      "description": "苹果旗舰手机",
+      "cpu": "A17 Pro",
+      "gpu": "6核图形处理器",
+      "storage": "256GB",
+      "size": "6.1英寸",
+      "type": "手机",
+      "picture": "https://example.com/iphone15.jpg",
+      "stock": 100,
+      "rating": 5
+    },
+    {
+      "pid": 2,
+      "name": "华为Mate 60",
+      "price": 6999.00,
+      "description": "华为旗舰手机",
+      "cpu": "麒麟9000S",
+      "gpu": "Maleoon 910",
+      "storage": "512GB",
+      "size": "6.8英寸",
+      "type": "手机",
+      "picture": "https://example.com/mate60.jpg",
+      "stock": 150,
+      "rating": 4
+    }
+  ]
+}
+
+功能18：获取所有订单信息
+已在OrderedController中实现
+请求路径：/api/orders
+请求方式：GET
+返回格式：
+{
+  "code": 1,
+  "msg": null,
+  "data": [
+    {
+      "oid": 1001,
+      "status": 1,
+      "orderTime": "2023-10-16T14:30:45",
+      "amount": 298.50,
+      "uid": 1,
+      "province": "北京市",
+      "receiverAddress": "朝阳区建国路88号",
+      "receiverName": "张三",
+      "receiverPhone": "13800138000",
+      "remark": "尽快发货"
+    },
+    {
+      "oid": 1002,
+      "status": 0,
+      "orderTime": "2023-10-15T10:20:33",
+      "amount": 1299.00,
+      "uid": 2,
+      "province": "上海市",
+      "receiverAddress": "浦东新区陆家嘴",
+      "receiverName": "李四",
+      "receiverPhone": "13900139000",
+      "remark": "包装好一点"
+    }
+  ]
+}
+
+功能19：获取所有商家信息
+已在BusinessController中实现
+请求路径：/api/businesses
+请求方式：GET
+返回格式：
+{
+  "code": 1,
+  "msg": null,
+  "data": [
+    {
+      "bid": 1,
+      "bname": "苹果官方旗舰店",
+      "password": "$2a$10$ABC123XYZ456..."
+    },
+    {
+      "bid": 2,
+      "bname": "华为官方旗舰店",
+      "password": "$2a$10$DEF456GHI789..."
+    }
+  ]
+}
+
+功能20：获取对应商品对应评价
+已在FeedbackController中实现
+请求路径：/api/feedbacks/product/{pid}
+请求方式：GET
+路径参数：pid (商品ID)
+返回格式：
+{
+  "code": 1,
+  "msg": null,
+  "data": [
+    {
+      "fid": 1,
+      "uid": 1,
+      "pid": 1,
+      "feedTime": "2023-10-16T14:30:45",
+      "star": 5,
+      "comment": "商品质量非常好，物流也很快！"
+    },
+    {
+      "fid": 2,
+      "uid": 2,
+      "pid": 1,
+      "feedTime": "2023-10-15T10:20:33",
+      "star": 4,
+      "comment": "还不错，性价比高"
+    }
+  ]
+}
