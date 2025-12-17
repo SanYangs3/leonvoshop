@@ -256,3 +256,39 @@ CREATE TABLE orderItem (
 ) COMMENT '订单详情表';
 ```
 
+```
+-- 1.在订单表中增加省份
+ALTER TABLE ordered 
+ADD COLUMN province VARCHAR(50) DEFAULT NULL 
+COMMENT '省份';
+
+-- 2.在订单详情表中增加小计金额
+ALTER TABLE orderItem 
+ADD COLUMN subtotal DECIMAL(12, 2) GENERATED ALWAYS AS (price * quantity) STORED
+COMMENT '小计金额';
+
+-- 3. 修改评论表（feedback）
+-- 修改feed_time字段类型为DATETIME，并设置默认值
+ALTER TABLE feedback 
+MODIFY COLUMN feed_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '评论时间';
+
+-- 4. 改进身份表
+ALTER TABLE identity 
+MODIFY COLUMN student BOOLEAN DEFAULT FALSE COMMENT '是否学生：true学生，false普通';
+
+-- 5. 修改订单表（ordered）
+-- 将order_time字段设置为默认当前时间
+ALTER TABLE ordered 
+MODIFY COLUMN order_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '订单时间';
+
+-- 6. 完善购物车表，添加必要字段
+-- 6.1 先清空cart表中的数据
+TRUNCATE TABLE cart;
+
+-- 6.2. 然后再执行ALTER TABLE添加字段和外键
+ALTER TABLE cart 
+ADD COLUMN quantity INT NOT NULL DEFAULT 1 COMMENT '购买数量',
+ADD COLUMN bid INT NOT NULL COMMENT '商家ID',
+ADD FOREIGN KEY (bid) REFERENCES business(bid);
+
+```
