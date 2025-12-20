@@ -1,19 +1,4 @@
-# lenovo-frontend
-
-## Project setup
-```
-npm install
-```
-
-### Compiles and hot-reloads for development
-```
-npm run serve
-```
-
-### Compiles and minifies for production
-```
-npm run build
-```
-
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
+## version2.2
+1. 此版本在2.1基础上修改了后台页面整体设置，注意引入了echarts工具来生成地图，所以打开时估计要显示下载这个。
+2. 另外此版本的核心逻辑时，如果用现在后端人员给出的api接口，就直接用给出的api接口，但因为连接不上后端，所以使用的都是模拟数据（模拟数据也都有标注），但是如果没有后端人员给出的api接口就直接显示没有对应api接口。所以这些代码都需要根据后面后端伙伴给出的api接口一步步改进。
+3. 此外，本版本中一些页面设计相似，但css代码每次都是在每个文件中都有，感觉有些多余，希望后续能够把整体布局设计到一个文件中，然后其他代码去调用这个样式来减少代码。
