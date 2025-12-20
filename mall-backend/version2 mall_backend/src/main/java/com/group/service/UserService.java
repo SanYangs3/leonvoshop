@@ -3,7 +3,9 @@ package com.group.service;
 import com.group.entity.Ordered;
 import com.group.entity.User;
 import com.group.entity.UserIdentity;
+import com.group.entity.vo.UserCountVO;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface UserService {
@@ -37,4 +39,27 @@ public interface UserService {
     通过用户id注销用户
      */
     void updateStatus(Integer id);
+
+    /*
+    获取今日新增用户数
+     */
+    Integer getAddCountToday(LocalDateTime startTime, LocalDateTime endTime);
+
+    /*
+    编辑用户身份
+     */
+    void updateUserRole(Long uid, String role);
+
+
+    UserCountVO getCompare();
+
+    Integer getByPhoneAndPass(String phone, String password);
+
+    Integer getByEmailAndPass(String email, String password);
+
+    Integer getByNameAndPass(String username, String password);
+
+    Integer searchUsername(String username);
+
+    Integer searchPhone(String phone);
 }

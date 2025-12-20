@@ -19,4 +19,10 @@ public class Cart {
 
     // 商品ID
     private Integer pid;
+
+    private Integer quantity;
+
+    private Integer bid;
+
+
 }
