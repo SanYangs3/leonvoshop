@@ -292,3 +292,24 @@ ADD COLUMN bid INT NOT NULL COMMENT '商家ID',
 ADD FOREIGN KEY (bid) REFERENCES business(bid);
 
 ```
+
+```
+-- 新增短信验证码的表，用于存储和验证短信验证码
+CREATE TABLE `sms_verification` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `phone` varchar(20) NOT NULL COMMENT '手机号',
+  `code` varchar(6) NOT NULL COMMENT '验证码',
+  `send_time` datetime NOT NULL COMMENT '发送时间',
+  `expire_time` datetime NOT NULL COMMENT '过期时间',
+  `used` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否使用（0未使用，1已使用）',
+  `verify_time` datetime DEFAULT NULL COMMENT '验证时间',
+  `purpose` varchar(20) DEFAULT 'register' COMMENT '用途：register登录register/找回密码forgot/修改手机update',
+  `ip_address` varchar(50) DEFAULT NULL COMMENT '请求IP地址',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_phone` (`phone`),
+  KEY `idx_phone_used` (`phone`, `used`),
+  KEY `idx_expire_time` (`expire_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='短信验证码表';
+```
+
