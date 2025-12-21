@@ -291,6 +291,9 @@ ADD COLUMN quantity INT NOT NULL DEFAULT 1 COMMENT '购买数量',
 ADD COLUMN bid INT NOT NULL COMMENT '商家ID',
 ADD FOREIGN KEY (bid) REFERENCES business(bid);
 
+--7.确保购物车表有唯一约束，避免同一用户重复添加同一商品
+ALTER TABLE cart ADD UNIQUE INDEX idx_uid_pid (uid, pid);
+
 ```
 
 ```

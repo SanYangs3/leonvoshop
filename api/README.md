@@ -1423,5 +1423,161 @@ oid - 订单ID
 }
 说明：商家只能给自己的商品增加评分，只接受200/500/1000三种金额
 
+## 5.购物车订单相关
+### 5.1.用户id加入商品到购物车(如果商品已经在购物车中，则直接增加数量)
+- 方法： POST
+- URL： http://localhost:8080/admin/cart/add
+- Body:
+  {
+    "uid": 1,
+    "pid": 2,
+    "quantity": 1,
+    "bid": 1
+  }
+- 响应示例（成功）：
+  {
+    "code": 1,
+    "data": true,
+    "msg": null
+  }
+- 响应示例（失败）：
+  {
+	"code": 0,
+	"data": null,
+	"msg": "加入购物车失败: 商品不存在"
+  }
+### 5.2.用户id删除购物车的商品
+根据用户id和商品id删除购物车中的商品
+- 方法： DELETE
+- URL： http://localhost:8080/admin/cart/delete?uid={uid}&pid={pid}
+- 响应示例（成功）：
+  {
+    "code": 1,
+    "data": true,
+    "msg": null
+  }
+- 响应示例（失败）：
+  {
+	"code": 0,
+	"data": null,
+	"msg": "删除失败，可能购物车项不存在或不属于该用户"
+  }
 
+另外实现：
+根据购物车ID删除: DELETE /admin/cart/delete/{cid}?uid={uid}
+清空用户购物车: DELETE /admin/cart/clear/{uid}
+
+### 5.3.用户ID购买商品PID生成订单(同时会录入填写地址，昵称，电话，备注，status默认是o)
+直接创建订单：
+- 方法： POST
+- URL： http://localhost:8080/api/orders/create
+- Body:
+  {
+    "uid": 1,
+    "items": [
+        {
+            "pid": 2,
+            "quantity": 1,
+            "bid": 1
+        },
+        {
+            "pid": 3,
+            "quantity": 2,
+            "bid": 2
+        }
+    ],
+    "province": "广东省",
+    "receiverAddress": "广州市天河区XX街道XX号",
+    "receiverName": "张三",
+    "receiverPhone": "13800138000",
+    "remark": "请尽快发货"
+  }
+- 响应示例（成功）：
+{
+    "code": 1,
+    "data": 10,
+    "msg": null
+}
+
+
+从购物车中创建订单：
+- 方法： POST
+- URL： http://localhost:8080/admin/cart/create-order/{uid}
+- Body:
+  {
+    "province": "北京市",
+    "receiverAddress": "朝阳区建国门外大街1号",
+    "receiverName": "李四",
+    "receiverPhone": "13900139000",
+    "remark": "请工作日配送"
+  }
+- 响应示例（成功）：
+  {
+    "code": 1,
+    "data": 10,
+    "msg": null
+  }
+- 响应示例（失败）：
+  {
+	"code": 0,
+	"data": null,
+	"msg": "创建订单失败：购物车为空"
+  }
+
+### 5.4.生成订单时用户需要首先选择省份，再填写具体地址（前端实现？）
+
+### 5.5.用户点击收货(订单状态status=2)
+- 方法： PUT
+- URL： http://localhost:8080/api/orders/{oid}/confirm-receipt?uid={uid}
+- 响应示例（成功）：
+  {
+    "code": 1,
+    "data": true,
+    "msg": null
+  }
+
+### 5.6.用户点击取消订单(仅在status=0时候才能status=3)
+- 方法： PUT
+- URL： http://localhost:8080/api/orders/{oid}/cancel?uid={uid}
+- 响应示例（成功）：
+  {
+    "code": 1,
+    "data": true,
+    "msg": null
+  }
+- 响应示例（失败）：
+  {
+	"code": 0,
+	"data": null,
+	"msg": "取消订单失败：只有待发货的订单才能取消，当前状态：已发货"
+  }
+
+### 5.7.用户对已购买的商品评价并打星(此评价同步更新到商品评分)
+- 方法： POST
+- URL： http://localhost:8080/api/feedbacks/submit
+- Body:
+  {
+    "uid": 1,
+    "pid": 2,
+    "star": 5,
+    "comment": "商品质量非常好，物流很快，下次还会购买！"
+  }
+- 响应示例（成功）：
+  {
+    "code": 1,
+    "data": true,
+    "msg": null
+  }
+- 响应示例（失败）：
+  {
+	"code": 0,
+	"data": null,
+	"msg": "评价提交失败: 您尚未购买此商品，无法评价"
+  }
+- 响应示例（失败）：
+  {
+	"code": 0,
+	"data": null,
+	"msg": "评价提交失败: 您已经评价过此商品，如需修改请使用更新评价"
+  }
 
