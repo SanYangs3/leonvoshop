@@ -62,4 +62,12 @@ public interface UserService {
     Integer searchUsername(String username);
 
     Integer searchPhone(String phone);
+
+    Integer registerWithSms(String username, String password, String phone, String smsCode);
+
+    User login(String loginName, String password, String smsCode);
+
+    String getPasswordByUserId(Integer uid);
+
+    void updateinfo(User user);
 }

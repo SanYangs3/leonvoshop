@@ -7,6 +7,7 @@ import com.group.mapper.UserMapper;
 import com.group.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -14,6 +15,9 @@ import java.util.List;
 
 @Service
 public class UserServiceImpl implements UserService {
+
+    @Autowired
+    private SmsService smsService;
 
     @Autowired
     private UserMapper userMapper;
@@ -128,5 +132,91 @@ public class UserServiceImpl implements UserService {
     @Override
     public Integer searchPhone(String phone) {
         return userMapper.searchPhone(phone);
+    }
+
+    @Transactional
+    public Integer registerWithSms(String username, String password, String phone, String smsCode) {
+        boolean isValid = smsService.verifyCode(phone, smsCode);
+        if (!isValid) {
+            throw new RuntimeException("短信验证码错误或已过期");
+        }
+
+        if (userMapper.existsByUsername(username)) {
+            throw new RuntimeException("用户名已存在");
+        }
+
+        if (userMapper.existsByPhone(phone)) {
+            throw new RuntimeException("手机号已注册");
+        }
+
+        User user = new User();
+        user.setUsername(username);
+        user.setPassword(password);
+        user.setPhone(phone);
+        user.setStatus(1);
+        user.setRole("user");
+        user.setCreateTime(LocalDateTime.now());
+
+        int result = userMapper.insertUser(user);
+        if (result <= 0) {
+            throw new RuntimeException("用户注册失败");
+        }
+
+        return user.getUid();
+    }
+
+    public User login(String loginName, String password, String smsCode) {
+        User user = null;
+
+        if (smsCode != null && !smsCode.isEmpty()) {
+            String phone = loginName;
+            boolean isValid = smsService.verifyCode(phone, smsCode);
+            if (!isValid) {
+                throw new RuntimeException("短信验证码错误或已过期");
+            }
+
+            user = userMapper.selectUserByPhone(phone);
+            if (user == null) {
+                throw new RuntimeException("手机号未注册");
+            }
+        } else {
+            user = userMapper.selectUserByUsername(loginName);
+            if (user == null) {
+                user = userMapper.selectUserByPhone(loginName);
+            }
+            if (user == null) {
+                user = userMapper.selectUserByEmail(loginName);
+            }
+
+            if (user == null || !user.getPassword().equals(password)) {
+                throw new RuntimeException("用户名或密码错误");
+            }
+        }
+
+        if (user.getStatus() == 0) {
+            throw new RuntimeException("账号已被禁用");
+        }
+
+        userMapper.updateLoginTime(user.getUid(), LocalDateTime.now());
+
+        return user;
+    }
+
+    public boolean checkUsernameExists(String username) {
+        return userMapper.existsByUsername(username);
+    }
+
+    public boolean checkPhoneExists(String phone) {
+        return userMapper.existsByPhone(phone);
+    }
+
+    @Override
+    public String getPasswordByUserId(Integer uid) {
+        return userMapper.getPasswordByUserId(uid);
+    }
+
+    @Override
+    public void updateinfo(User user) {
+        userMapper.updateUser(user);
     }
 }
