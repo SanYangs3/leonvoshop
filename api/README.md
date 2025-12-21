@@ -471,7 +471,7 @@ GET
 }
 ```
 
-功能2.获取所有商品数
+## 2.2获取所有商品数
 已在Product Controller中实现
 请求路径：/api/products/count
 请求方式：GET
@@ -482,7 +482,7 @@ GET
   "data": 156
 }
 
-功能3.获取所有订单数
+## 2.3获取所有订单数
 已在OrderedController中实现
 请求路径：/api/orders/count
 请求方式：GET
@@ -493,7 +493,7 @@ GET
   "data": 125
 }
 
-功能4：获取总销售额
+## 2.4 总销售额
 已在OrderedController中实现
 请求路径：/api/orders/total-sales
 请求方式：GET
@@ -504,7 +504,7 @@ GET
   "data": 156780.50
 }
 
-功能5：获取昨天和今天的订单数对比（包含百分比）
+## 2.5 获取昨天和今天的订单数对比（含百分数）
 已在StatisticsController中实现
 请求路径：/api/statistics/order-comparison
 请求方式：GET
@@ -960,8 +960,172 @@ GET
 ## 3.6 
 
 
+# 4.商品商家相关
+## 4.1 获取所有商品信息（商家角度）
+请求路径：/api/business/products/my/{bid}
+请求方式：GET
+路径参数：bid - 商家ID
+返回格式：
+{
+  "code": 1,
+  "msg": null,
+  "data": [
+    {
+      "pid": 1,
+      "name": "联想ThinkPad X1",
+      "price": 12999.00,
+      "description": "高端商务笔记本",
+      "cpu": "i7-1260P",
+      "gpu": "集成显卡",
+      "storage": "1TB SSD",
+      "size": "14英寸",
+      "type": "笔记本",
+      "picture": "thinkpad.jpg",
+      "stock": 50,
+      "rating": 100
+    }
+  ]
+}
+说明：商家只能查看自己管辖范围内的商品
 
+## 4.2 通过商品id获取单个商品信息
+请求路径：/api/business/products/my/{bid}/{pid}
+请求方式：GET
+路径参数：
 
+bid - 商家ID
+
+pid - 商品ID
+返回格式：
+{
+  "code": 1,
+  "msg": null,
+  "data": {
+    "pid": 1,
+    "name": "联想ThinkPad X1",
+    "price": 12999.00,
+    "description": "高端商务笔记本",
+    "cpu": "i7-1260P",
+    "gpu": "集成显卡",
+    "storage": "1TB SSD",
+    "size": "14英寸",
+    "type": "笔记本",
+    "picture": "thinkpad.jpg",
+    "stock": 50,
+    "rating": 100
+  }
+}
+
+## 4.3 商家上传商品（包括所有商品信息，默认评分是100
+请求路径：/api/business/products/upload/{bid}
+请求方式：POST
+路径参数：bid - 商家ID
+请求格式：
+{
+  "name": "联想拯救者Y9000P",
+  "price": 9999.00,
+  "description": "高性能游戏笔记本",
+  "cpu": "i7-12700H",
+  "gpu": "RTX 3060",
+  "storage": "1TB SSD",
+  "size": "16英寸",
+  "type": "游戏本",
+  "picture": "y9000p.jpg",
+  "stock": 30
+}
+返回格式：
+{
+  "code": 1,
+  "msg": null,
+  "data": "商品上传成功，商品ID：101"
+}
+说明：上传的商品会自动设置评分=100，并在business_product表中建立关联
+
+## 4.4 商家获取自己管辖范围内所有商品的所有订单（不显示stauts=3的订单）
+请求路径：/api/business/orders/my/{bid}
+请求方式：GET
+路径参数：bid - 商家ID
+返回格式：
+{
+  "code": 1,
+  "msg": null,
+  "data": [
+    {
+      "oid": 1001,
+      "status": 0,
+      "orderTime": "2023-10-16T14:30:45",
+      "amount": 12999.00,
+      "uid": 1,
+      "province": "北京市",
+      "receiverAddress": "朝阳区望京SOHO",
+      "receiverName": "张三",
+      "receiverPhone": "13800138000",
+      "remark": "请尽快发货",
+      "statusText": "待发货"
+    }
+  ]
+}
+
+## 4.5 商家接到订单时候点击发货（改变status=1
+请求路径：/api/business/orders/ship/{bid}/{oid}
+请求方式：PUT
+路径参数：
+
+bid - 商家ID
+
+oid - 订单ID
+返回格式：
+{
+  "code": 1,
+  "msg": null,
+  "data": "发货成功"
+}
+错误情况;
+{
+  "code": 0,
+  "msg": "发货失败：订单不存在、不属于您或状态不正确",
+  "data": null
+}
+
+## 4.6 当有新评论时，更改对应商品的评分（5星+10，4星+5，三星+0，二星-5，一星-10）
+请求路径：/api/feedbacks
+请求方式：POST
+请求格式：
+{
+  "uid": 1,
+  "pid": 100,
+  "star": 5,
+  "comment": "商品非常好用！"
+}
+返回格式：
+{
+  "code": 1,
+  "msg": null,
+  "data": "评价发表成功，商品评分已更新"
+}
+
+## 4.7 商家花钱自己增加商品评分（200块钱+5，500块钱+15，1000块钱+40
+请求路径：/api/business/rating/increase
+请求方式：POST
+请求格式：
+{
+  "bid": 1,
+  "pid": 100,
+  "amount": 500
+}
+返回格式：
+{
+  "code": 1,
+  "msg": null,
+  "data": "评分增加成功，已扣除500元"
+}
+错误情况：
+{
+  "code": 0,
+  "msg": "评分增加失败：商品不存在、不属于您或金额不正确",
+  "data": null
+}
+说明：商家只能给自己的商品增加评分，只接受200/500/1000三种金额
 
 
 
