@@ -219,4 +219,14 @@ public class UserServiceImpl implements UserService {
     public void updateinfo(User user) {
         userMapper.updateUser(user);
     }
+
+    @Override
+    public User userLogin(String userName, String password) {
+        return userMapper.getUserByNameAndPass(userName,password);
+    }
+
+    @Override
+    public User adminLogin(String userName, String password) {
+        return userMapper.getAdminByNameAndPass(userName,password);
+    }
 }

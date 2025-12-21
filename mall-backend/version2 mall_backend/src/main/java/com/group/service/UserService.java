@@ -70,4 +70,8 @@ public interface UserService {
     String getPasswordByUserId(Integer uid);
 
     void updateinfo(User user);
+
+    User userLogin(String userName, String password);
+
+    User adminLogin(String userName, String password);
 }

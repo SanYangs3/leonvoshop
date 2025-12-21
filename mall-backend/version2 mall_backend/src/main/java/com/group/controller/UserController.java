@@ -243,19 +243,22 @@ public class UserController {
     /**
      * 用户登录
      */
-    @PostMapping("/login")
-    public Result<Object> login(@RequestBody Map<String, String> request) {
+    @PostMapping("/userlogin")
+    public Result<Object> userlogin(@RequestBody Map<String, String> request) {
         try {
-            String loginName = request.get("loginName");
+            String userName = request.get("username");
             String password = request.get("password");
-            String smsCode = request.get("smsCode");
 
-            if (loginName == null) {
-                return Result.error("登录账号不能为空");
+
+            if (userName == null || password == null) {
+                return Result.error("用户名或密码不能为空");
             }
 
-            User user = userService.login(loginName, password, smsCode);
+            User user = userService.userLogin(userName,password);
 
+            if (user == null) {
+                return Result.error("用户名或密码错误");
+            }
             Map<String, Object> userInfo = new HashMap<>();
             userInfo.put("uid", user.getUid());
             userInfo.put("username", user.getUsername());
@@ -270,6 +273,39 @@ public class UserController {
             return Result.error(e.getMessage());
         }
     }
+
+    @PostMapping("/adminlogin")
+    public Result<Object> adminlogin(@RequestBody Map<String, String> request) {
+        try {
+            String userName = request.get("username");
+            String password = request.get("password");
+
+
+            if (userName == null || password == null) {
+                return Result.error("用户名或密码不能为空");
+            }
+
+            User user = userService.adminLogin(userName,password);
+
+            if (user == null) {
+                return Result.error("用户名或密码错误");
+            }
+            Map<String, Object> userInfo = new HashMap<>();
+            userInfo.put("uid", user.getUid());
+            userInfo.put("username", user.getUsername());
+            userInfo.put("phone", user.getPhone());
+            userInfo.put("email", user.getEmail());
+            userInfo.put("avatar", user.getAvatar());
+            userInfo.put("role", user.getRole());
+
+            return Result.success(userInfo);
+
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+
 
     //验证用户密码
     @GetMapping("/verifypassword")

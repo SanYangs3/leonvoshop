@@ -446,6 +446,103 @@ INSERT INTO identity (level, student, points, uid) VALUES
 3
 ```
 
+## 1.11 用户登录
+
+请求方式：
+
+POST
+
+请求路径：
+
+/admin/user/userlogin
+
+请求格式：
+
+```
+{
+      "username": "zhangsan",
+      "password": "098f6bcd4621d373cade4e832627b4f6"
+}
+```
+
+返回格式：
+
+```
+{
+	"code": 0,
+	"data": null,
+	"msg": "用户名或密码不能为空"
+}
+{
+	"code": 0,
+	"data": null,
+	"msg": "用户名或密码错误"
+}
+{
+	"code": 1,
+	"data": {
+		"uid": 10,
+		"role": "user",
+		"phone": "10086",
+		"avatar": "/avatar/test.jpg",
+		"email": "test@test.com",
+		"username": "zhangsan"
+	},
+	"msg": null
+}
+```
+
+## 1.12 admin登录
+
+请求方式：
+
+POST
+
+请求路径：
+
+/admin/user/adminlogin
+
+请求格式：
+
+```
+{
+      "username": "zhangsan",
+      "password": "098f6bcd4621d373cade4e832627b4f6"
+      
+}
+```
+
+返回格式：
+
+```
+{
+	"code": 0,
+	"data": null,
+	"msg": "用户名或密码不能为空"
+}
+{
+	"code": 0,
+	"data": null,
+	"msg": "用户名或密码错误"
+}
+{
+	"code": 1,
+	"data": {
+		"uid": 1,
+		"role": "admin",
+		"phone": "13800138001",
+		"avatar": "/avatar/admin.jpg",
+		"email": "admin@example.com",
+		"username": "admin"
+	},
+	"msg": null
+}
+```
+
+## 
+
+
+
 # 2.后端相关
 
 完成了“后端相关”的部分功能
