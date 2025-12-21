@@ -957,7 +957,206 @@ GET
 }
 ```
 
-## 3.6 
+## 3.6  用户通过手机号注册
+
+这里需要分为几个需求
+
+1、验证手机号是否已被注册，已在3.5实现
+
+2、发送短信验证码
+
+请求方式：
+
+POST
+
+请求路径：
+
+/api/sms/send-code
+
+请求格式：
+
+```
+{
+  "phone":"13778954955",
+  "purpose":"register"
+}
+```
+
+返回格式：
+
+```
+{
+	"code": 1,
+	"data": "验证码发送成功",
+	"msg": null
+}
+```
+
+3、检查短信验证码
+
+请求方式：
+
+POST
+
+请求路径：
+
+/api/sms/verify-code
+
+请求格式：
+
+```
+{
+    "phone": "13778954955",
+    "code": "742608"
+}
+```
+
+返回格式：
+
+```
+{
+	"code": 1,
+	"data": "验证码验证成功",
+	"msg": null
+}
+{
+	"code": 0,
+	"data": null,
+	"msg": "验证码错误或已过期"
+}
+```
+
+4、检查是否可以重新发送短信验证码
+
+请求方式：
+
+GET
+
+请求路径：
+
+/api/sms/can-resend/{phone}
+
+请求格式：
+
+```
+/api/sms/can-resend/13778954955
+```
+
+返回格式：
+
+```
+{
+	"code": 1,
+	"data": {
+		"canResend": true,
+		"remaining": 0
+	},
+	"msg": null
+}
+{
+	"code": 1,
+	"data": {
+		"canResend": false,
+		"remaining": 297    //剩余有效期
+	},
+	"msg": null
+}
+```
+
+
+
+
+
+## 3.8 通过id用户修改用户信息（头像/换绑手机号/邮箱换绑/换密码）（修改除头像外信息都会有密码再次验证）
+
+分为3个需求实现
+
+1、验证用户密码
+
+请求方式：
+
+GET
+
+请求路径：
+
+/admin/user/verifypassword
+
+请求格式：
+
+```
+/admin/user/verifypassword?uid=2&password=e10adc3949ba59abbe56e057f20f883
+```
+
+返回格式：
+
+```
+{
+	"code": 1,
+	"data": "验证通过",
+	"msg": null
+}
+{
+	"code": 0,
+	"data": null,
+	"msg": "密码错误"
+}
+```
+
+2、修改用户信息
+
+请求方式：
+
+PUT
+
+请求路径：
+
+/admin/user/updateinfo
+
+请求格式：
+
+```
+{
+  "uid":"10",
+  "username":"zhangsan",
+  "phone":"10086"
+}//可以传递任意字段，其中uid为必须，其他可选
+```
+
+返回格式：
+
+```
+{
+	"code": 1,
+	"data": null,
+	"msg": null
+}
+```
+
+3、上传头像
+
+请求方式：
+
+PUT
+
+请求路径：
+
+/admin/user/avator
+
+请求类型：
+
+```
+multipart/form-data
+```
+
+返回格式：
+
+```
+{
+	"code": 1,
+	"data": "https://yxtbucket01.oss-cn-beijing.aliyuncs.com/5bebc532-2bd7-44d2-b606-957881972d82..jpg",
+	"msg": null
+}//返回了图片的url，根据url可以直接打开图片
+```
 
 
 

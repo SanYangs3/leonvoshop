@@ -6,16 +6,21 @@ import com.group.entity.User;
 import com.group.entity.UserIdentity;
 import com.group.entity.vo.UserCountVO;
 import com.group.service.UserService;
+import com.group.utils.AliOSSUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/admin/user")
@@ -23,6 +28,8 @@ import java.util.List;
 public class UserController {
     @Autowired
     private UserService userService;
+    @Autowired
+    AliOSSUtils aliOSSUtils;
 
     /*
     返回所有用户的全部信息
@@ -206,5 +213,88 @@ public class UserController {
             return Result.success();
         }
     }
+
+    @PostMapping("/register-with-sms")
+    public Result<Object> registerWithSms(@RequestBody Map<String, String> request) {
+        try {
+            String username = request.get("username");
+            String password = request.get("password");
+            String phone = request.get("phone");
+            String smsCode = request.get("smsCode");
+
+            if (username == null || password == null || phone == null || smsCode == null) {
+                return Result.error("所有字段都是必填的");
+            }
+
+            Integer userId = userService.registerWithSms(username, password, phone, smsCode);
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("userId", userId);
+            data.put("username", username);
+            data.put("phone", phone);
+
+            return Result.success(data);
+
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 用户登录
+     */
+    @PostMapping("/login")
+    public Result<Object> login(@RequestBody Map<String, String> request) {
+        try {
+            String loginName = request.get("loginName");
+            String password = request.get("password");
+            String smsCode = request.get("smsCode");
+
+            if (loginName == null) {
+                return Result.error("登录账号不能为空");
+            }
+
+            User user = userService.login(loginName, password, smsCode);
+
+            Map<String, Object> userInfo = new HashMap<>();
+            userInfo.put("uid", user.getUid());
+            userInfo.put("username", user.getUsername());
+            userInfo.put("phone", user.getPhone());
+            userInfo.put("email", user.getEmail());
+            userInfo.put("avatar", user.getAvatar());
+            userInfo.put("role", user.getRole());
+
+            return Result.success(userInfo);
+
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    //验证用户密码
+    @GetMapping("/verifypassword")
+    public Result verifypassword(@RequestParam String password,@RequestParam Integer uid){
+        String upassword = userService.getPasswordByUserId(uid);
+        if(upassword.equals(password)){
+            return Result.success("验证通过");
+        } else {
+            return Result.error("密码错误");
+        }
+    }
+
+    //修改用户信息
+    @PutMapping("/updateinfo")
+    public Result updateinfo(@RequestBody User user) {
+        userService.updateinfo(user);
+        return Result.success();
+    }
+
+    @PutMapping("/avator")
+    public Result<String> avator(MultipartFile image) throws IOException {
+        String url = aliOSSUtils.upload(image);
+        System.out.println(url);
+        return Result.success(url);
+    }
+
 
 }

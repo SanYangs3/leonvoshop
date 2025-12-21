@@ -23,7 +23,7 @@ public interface UserMapper {
      */
     @Insert("insert into user (username, password, email, phone, status, avatar, role, create_time, update_time) VALUES " +
             "(#{username},#{password},#{email},#{phone},#{status},#{avatar},#{role},#{createTime},#{updateTime})")
-    void insertUser(User user);
+    int insertUser(User user);
 
     /*
     根据用户id返回单个用户所有信息
@@ -73,4 +73,51 @@ public interface UserMapper {
 
     @Select("select count(*) from user where phone = #{phone} and role = 'user'")
     Integer searchPhone(String phone);
+
+
+
+
+
+    @Select("SELECT * FROM users WHERE uid = #{uid}")
+    User selectUserById(Integer uid);
+
+    @Select("SELECT * FROM users WHERE username = #{username}")
+    User selectUserByUsername(String username);
+
+    @Select("SELECT * FROM users WHERE phone = #{phone}")
+    User selectUserByPhone(String phone);
+
+    @Select("SELECT * FROM users WHERE email = #{email}")
+    User selectUserByEmail(String email);
+
+    @Select("SELECT COUNT(*) FROM users WHERE username = #{username}")
+    boolean existsByUsername(String username);
+
+    @Select("SELECT COUNT(*) FROM users WHERE phone = #{phone}")
+    boolean existsByPhone(String phone);
+
+    @Select("SELECT COUNT(*) FROM users WHERE email = #{email}")
+    boolean existsByEmail(String email);
+
+    @Update("<script>" +
+            "UPDATE user " +
+            "<set>" +
+            "  <if test='username != null'>username = #{username},</if>" +
+            "  <if test='password != null'>password = #{password},</if>" +
+            "  <if test='email != null'>email = #{email},</if>" +
+            "  <if test='phone != null'>phone = #{phone},</if>" +
+            "  <if test='status != null'>status = #{status},</if>" +
+            "  <if test='avatar != null'>avatar = #{avatar},</if>" +
+            "  <if test='role != null'>role = #{role},</if>" +
+            "  <if test='updateTime != null'>update_time = #{updateTime},</if>" +
+            "</set>" +
+            "WHERE uid = #{uid}" +
+            "</script>")
+    int updateUser(User user);
+
+    @Update("UPDATE users SET update_time = #{updateTime} WHERE uid = #{uid}")
+    int updateLoginTime(Integer uid, LocalDateTime updateTime);
+
+    @Select("select password from user where uid = #{uid}")
+    String getPasswordByUserId(Integer uid);
 }
