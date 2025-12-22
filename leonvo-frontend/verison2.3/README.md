@@ -1,19 +1,20 @@
-# lenovo-frontend
+12.15 ----沐衡
+相较于之前的版本（Version1.2）修改了登陆预注册的界面，在原本的Loginview,UserRegister的基础上又加入了SmsRegister，分别为登陆界面，邮箱验证注册界面以及短信验证注册界面，在此基础上，增加完善了router/index.js中的路径。登陆界面现在可选账户登录，电话号码登录以及邮箱登录，三个页面之间可以相互跳转。
 
-## Project setup
-```
-npm install
-```
+12.22---羊羊羊
 
-### Compiles and hot-reloads for development
-```
-npm run serve
-```
+张烨主要完成了后端的页面，但是都是虚拟数据，所以我只要是解决了前端和后端接口的对接和连接
 
-### Compiles and minifies for production
-```
-npm run build
-```
+目前已经实现的有前端用户通过各种方式登录（都可以实现 注册还没有对接）
 
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
+主页只显示15条商品信息，可以点进去看商品的具体详情
+
+后台可以查看用户的信息并实现禁用和查看所有商品，但是趋势图那块还有问题，上面标明了哪一些是模拟数据
+
+mh你要做的就是把最新提供的api接口和我们前端连上，同时建立商家端差不多这些
+
+目前我现在没有对 role进行验证，mh你改懂adminlogin的时候记得调用后端接口对role进行判断，同时前端客户登录的时候也要调用接口判断
+
+还有一点要说明现在不是直接调用http:8080了，而且多了个api.config.js，里面封装了后端的接口，务必要通过api.config.js来获取接口（当添加后端api的时候一定要把这个文件也改了）！！！！！！！！！！！！！！！！！！！！！！！！！1，不要让我回来看到直接裸调用
+
+auth是保卫文件，假如没有登录是无法访问后台的初始页面，如果有需要一定要改
