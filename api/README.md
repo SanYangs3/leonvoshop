@@ -1424,8 +1424,9 @@ oid - 订单ID
 说明：商家只能给自己的商品增加评分，只接受200/500/1000三种金额
 
 ## 4.8 通过商家登录的bname和password获取商家的所有信息
-请求路径：/api/businesses/login
-请求方式：POST
+（获取商家完整信息）
+请求路径：api/businesses/login
+请求方式：GET
 请求格式：
 {
   "bname": "联想官方旗舰店",
@@ -1437,7 +1438,15 @@ oid - 订单ID
   "msg": null,
   "data": {
     "bid": 1,
-    "bname": "联想官方旗舰店"
+    "bname": "联想官方旗舰店",
+    "password": "123456",
+    "status": 1,
+    "regTime": "2023-01-15",
+    "contactPerson": "张经理",
+    "contactPhone": "13800138001",
+    "contactEmail": "zhang@lenovo.com",
+    "address": "北京市海淀区中关村大街1号",
+    "description": "联想官方旗舰店，主营联想全系列产品"
   }
 }
 错误情况：
@@ -1446,6 +1455,37 @@ oid - 订单ID
   "msg": "商家名称或密码错误",
   "data": null
 }
+{
+  "code": 0,
+  "msg": "商家账号已被禁用",
+  "data": null
+}
+
+为了使商家信息更完整，新建商家补充信息表 businessInfo
+sql：
+-- 商家补充信息表 businessInfo
+CREATE TABLE businessInfo (
+    bid INT PRIMARY KEY NOT NULL COMMENT '商家ID（外键）',
+    status TINYINT DEFAULT 1 COMMENT '状态：1正常，0禁用',
+    reg_time DATE COMMENT '注册时间，格式：YYYY-MM-DD',
+    contact_person VARCHAR(50) COMMENT '联系人',
+    contact_phone VARCHAR(20) COMMENT '联系电话',
+    contact_email VARCHAR(100) COMMENT '联系邮箱',
+    address VARCHAR(200) COMMENT '商家地址',
+    description TEXT COMMENT '商家描述',
+    
+    -- 外键约束，关联business表
+    CONSTRAINT fk_businessInfo_bid 
+        FOREIGN KEY (bid) 
+        REFERENCES business(bid)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+) COMMENT '商家补充信息表';
+
+-- 可选：为常用查询字段添加索引
+CREATE INDEX idx_status ON businessInfo(status);
+CREATE INDEX idx_reg_time ON businessInfo(reg_time);
+
  ## 4.9 通过商家id关联获取该商家的所有物品
  GET /api/business/products/my/{bid}
  有重复，见4.1
