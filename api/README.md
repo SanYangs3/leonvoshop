@@ -1423,6 +1423,91 @@ oid - 订单ID
 }
 说明：商家只能给自己的商品增加评分，只接受200/500/1000三种金额
 
+## 4.8 通过商家登录的bname和password获取商家的所有信息
+请求路径：/api/businesses/login
+请求方式：POST
+请求格式：
+{
+  "bname": "联想官方旗舰店",
+  "password": "123456"
+}
+返回格式：
+{
+  "code": 1,
+  "msg": null,
+  "data": {
+    "bid": 1,
+    "bname": "联想官方旗舰店"
+  }
+}
+错误情况：
+{
+  "code": 0,
+  "msg": "商家名称或密码错误",
+  "data": null
+}
+ ## 4.9 通过商家id关联获取该商家的所有物品
+ GET /api/business/products/my/{bid}
+ 有重复，见4.1
+ ## 4.10 商家添加商品信息（包含所有的）
+POST /api/business/products/upload/{bid}
+有重复，见4.3
+ ## 4.11 返回库存小于等于5的所有商品（商家获取自己商品中库存小于等于5的商品列表）
+ 请求路径：/api/business/products/my/{bid}/low-stock
+请求方式：GET
+路径参数：bid - 商家ID
+返回格式：
+{
+  "code": 1,
+  "msg": null,
+  "data": [
+    {
+      "pid": 1,
+      "name": "联想ThinkPad X1",
+      "price": 12999.00,
+      "description": "高端商务笔记本",
+      "cpu": "i7-1260P",
+      "gpu": "集成显卡",
+      "storage": "1TB SSD",
+      "size": "14英寸",
+      "type": "笔记本",
+      "picture": "thinkpad.jpg",
+      "stock": 3,
+      "rating": 100
+    }
+  ]
+}
+## 4.12 商家通过商品id修改商品的信息
+请求路径：/api/business/products/update/{bid}
+请求方式：PUT
+路径参数：bid - 商家ID
+请求格式：
+{
+  "pid": 100,
+  "name": "联想ThinkPad X1 Carbon 2024",
+  "price": 13999.00,
+  "description": "2024款旗舰商务本",
+  "cpu": "i7-1360P",
+  "gpu": "集成显卡",
+  "storage": "2TB SSD",
+  "size": "14英寸",
+  "type": "笔记本",
+  "picture": "thinkpad2024.jpg",
+  "stock": 80
+}
+返回格式：
+{
+  "code": 1,
+  "msg": null,
+  "data": "商品信息修改成功"
+}
+错误情况：
+{
+  "code": 0,
+  "msg": "商品不存在或不属于该商家",
+  "data": null
+}
+
 ## 5.购物车订单相关
 ### 5.1.用户id加入商品到购物车(如果商品已经在购物车中，则直接增加数量)
 - 方法： POST
