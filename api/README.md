@@ -1362,7 +1362,7 @@ pid - 商品ID
   ]
 }
 
-## 4.5 商家接到订单时候点击发货（改变status=1
+## 4.5 商家接到订单时候点击发货（改变status=1）
 请求路径：/api/business/orders/ship/{bid}/{oid}
 请求方式：PUT
 路径参数：
@@ -1545,6 +1545,123 @@ POST /api/business/products/upload/{bid}
 {
   "code": 0,
   "msg": "商品不存在或不属于该商家",
+  "data": null
+}
+## 4.13 商家订单管理（/business/orders/my/{bid}）
+4.4 4.5这两处已实现：
+获取商家所有订单（不含已取消） GET /business/orders/my/{bid}
+获取待发货订单（status=0） GET /business/orders/my/{bid}/pending
+发货，将订单状态改为已发货  PUT /business/orders/ship/{bid}/{oid}
+
+## 4.14 商家商品管理（/business/products/my/{bid}）
+4.1 4.2 4.3 4.10 4.11这五处分别已实现商家商品管理：
+获取商家所有商品 (GET /my/{bid})
+获取单个商品详情 (GET /my/{bid}/{pid})
+上传商品 (POST /upload/{bid}) 
+修改商品信息 (PUT /update/{bid}) 
+查看低库存商品 (GET /my/{bid}/low-stock) 
+
+## 4.15 商家统计（/business/stats/${bid}）
+### 4.15.1 获取商家统计总览
+请求路径: /api/business/stats/{bid}
+请求方式: GET
+路径参数: bid - 商家ID
+返回格式: JSON
+响应格式：
+{
+  "code": 1,
+  "msg": null,
+  "data": {
+    "todayOrderCount": 5,
+    "todaySales": 19999.00,
+    "productCount": 20,
+    "lowStockProductCount": 3,
+    "pendingOrderCount": 2,
+    "totalSales": 50000.00,
+    "totalOrderCount": 50
+  }
+}
+### 4.15.2 获取商家今日订单数
+请求路径: /api/business/stats/{bid}/today-orders
+请求方式: GET
+路径参数: bid - 商家ID
+返回格式: JSON
+响应格式：
+{
+  "code": 1,
+  "msg": null,
+  "data": 5
+}
+### 4.15.3 获取商家今日销售额
+请求路径: /api/business/stats/{bid}/today-sales
+请求方式: GET
+路径参数: bid - 商家ID
+返回格式: JSON
+响应格式：
+{
+  "code": 1,
+  "msg": null,
+  "data": 19999.00
+}
+### 4.15.4 获取商家商品总数
+请求路径: /api/business/stats/{bid}/product-count
+请求方式: GET
+路径参数: bid - 商家ID
+返回格式: JSON
+响应格式：
+{
+  "code": 1,
+  "msg": null,
+  "data": 20
+}
+### 4.15.5 获取商家低库存商品数（<=5）
+请求路径: /api/business/stats/{bid}/low-stock-count
+请求方式: GET
+路径参数: bid - 商家ID
+返回格式: JSON
+响应格式：
+{
+  "code": 1,
+  "msg": null,
+  "data": 3
+}
+### 4.15.6 获取商家待发货订单数
+请求路径: /api/business/stats/{bid}/pending-orders
+请求方式: GET
+路径参数: bid - 商家ID
+返回格式: JSON
+响应格式：
+{
+  "code": 1,
+  "msg": null,
+  "data": 2
+}
+### 4.15.7 获取商家总销售额
+请求路径: /api/business/stats/{bid}/total-sales
+请求方式: GET
+路径参数: bid - 商家ID
+返回格式: JSON
+响应格式：
+{
+  "code": 1,
+  "msg": null,
+  "data": 50000.00
+}
+### 4.15.8 获取商家总订单数
+请求路径: /api/business/stats/{bid}/total-orders
+请求方式: GET
+路径参数: bid - 商家ID
+返回格式: JSON
+响应格式：
+{
+  "code": 1,
+  "msg": null,
+  "data": 50
+}
+错误响应格式：
+{
+  "code": 0,
+  "msg": "获取商家统计数据失败：数据库连接异常",
   "data": null
 }
 
