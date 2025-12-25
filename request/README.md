@@ -97,6 +97,14 @@
 
 12. 通过商品id修改商品的信息  √
 
+    --2025.12.25商家端信息补充
+
+13. 商家订单管理API ❌（/business/orders/my/{bid}）
+
+14. 商家商品管理API ❌（/business/products/my/{bid}）
+
+15. 商家统计API ❌（/business/stats/${bid}）
+
 
 后端相关
 
