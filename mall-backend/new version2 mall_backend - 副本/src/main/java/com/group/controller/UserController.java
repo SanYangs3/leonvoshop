@@ -1,5 +1,7 @@
 package com.group.controller;
 
+import com.group.entity.DTO.DailyUserGrowthDTO;
+import com.group.entity.DTO.UserGrowthTrendDTO;
 import com.group.entity.Ordered;
 import com.group.entity.Result;
 import com.group.entity.User;
@@ -205,6 +207,25 @@ public class UserController {
         }else {
             return Result.success();
         }
+    }
+
+
+    @GetMapping("/growth/trend")
+    public Result<UserGrowthTrendDTO> getUserGrowthTrend() {
+        UserGrowthTrendDTO trend = userService.getUserGrowthTrend();
+        return Result.success(trend);
+    }
+
+    @GetMapping("/growth/weekly")
+    public Result<List<DailyUserGrowthDTO>> getWeeklyGrowth() {
+        List<DailyUserGrowthDTO> weeklyGrowth = userService.getWeeklyGrowth();
+        return Result.success(weeklyGrowth);
+    }
+
+    @GetMapping("/growth/monthly")
+    public Result<List<DailyUserGrowthDTO>> getMonthlyGrowth() {
+        List<DailyUserGrowthDTO> monthlyGrowth = userService.getMonthlyGrowth();
+        return Result.success(monthlyGrowth);
     }
 
 }

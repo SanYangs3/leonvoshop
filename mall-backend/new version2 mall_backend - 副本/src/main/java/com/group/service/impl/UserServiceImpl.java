@@ -1,17 +1,28 @@
 package com.group.service.impl;
 
+import com.group.entity.DTO.DailyUserGrowthDTO;
+import com.group.entity.DTO.UserGrowthTrendDTO;
 import com.group.entity.User;
 import com.group.entity.UserIdentity;
 import com.group.entity.vo.UserCountVO;
+import com.group.exception.BusinessException;
 import com.group.mapper.UserMapper;
 import com.group.service.UserService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAdjusters;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class UserServiceImpl implements UserService {
 
@@ -128,5 +139,98 @@ public class UserServiceImpl implements UserService {
     @Override
     public Integer searchPhone(String phone) {
         return userMapper.searchPhone(phone);
+    }
+
+    @Override
+    public UserGrowthTrendDTO getUserGrowthTrend() {
+        // 获取当前时间
+        LocalDate now = LocalDate.now();
+
+        // 计算本周的开始和结束日期
+        LocalDate weekStartDate = now.with(DayOfWeek.MONDAY);
+        LocalDate weekEndDate = now.with(DayOfWeek.SUNDAY);
+
+        // 计算本月的开始和结束日期
+        LocalDate monthStartDate = now.withDayOfMonth(1);
+        LocalDate monthEndDate = now.with(TemporalAdjusters.lastDayOfMonth());
+
+        // 获取本周数据
+        List<DailyUserGrowthDTO> weeklyGrowth = getDailyGrowthBetween(weekStartDate, weekEndDate);
+
+        // 获取本月数据
+        List<DailyUserGrowthDTO> monthlyGrowth = getDailyGrowthBetween(monthStartDate, monthEndDate);
+
+        return UserGrowthTrendDTO.builder()
+                .weeklyGrowth(weeklyGrowth)
+                .monthlyGrowth(monthlyGrowth)
+                .weekStartDate(weekStartDate)
+                .weekEndDate(weekEndDate)
+                .monthStartDate(monthStartDate)
+                .monthEndDate(monthEndDate)
+                .build();
+    }
+
+    @Override
+    public List<DailyUserGrowthDTO> getDailyGrowthBetween(LocalDate startDate, LocalDate endDate) {
+        try {
+            // 转换日期格式
+            String start = startDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+            String end = endDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+
+            // 从数据库查询数据
+            List<DailyUserGrowthDTO> dailyGrowth = userMapper.selectDailyUserGrowth(start, end);
+
+            // 填充缺失的日期（确保返回完整的日期序列）
+            return fillMissingDates(startDate, endDate, dailyGrowth);
+        } catch (Exception e) {
+            log.error("获取用户增长数据失败，开始日期：{}，结束日期：{}", startDate, endDate, e);
+            throw new BusinessException("获取用户增长数据失败");
+        }
+    }
+
+    @Override
+    public List<DailyUserGrowthDTO> getWeeklyGrowth() {
+        LocalDate now = LocalDate.now();
+        LocalDate weekStart = now.with(DayOfWeek.MONDAY);
+        LocalDate weekEnd = now.with(DayOfWeek.SUNDAY);
+        return getDailyGrowthBetween(weekStart, weekEnd);
+    }
+
+    @Override
+    public List<DailyUserGrowthDTO> getMonthlyGrowth() {
+        LocalDate now = LocalDate.now();
+        LocalDate monthStart = now.withDayOfMonth(1);
+        LocalDate monthEnd = now.with(TemporalAdjusters.lastDayOfMonth());
+        return getDailyGrowthBetween(monthStart, monthEnd);
+    }
+
+    /**
+     * 填充缺失的日期，确保返回完整的日期序列
+     */
+    private List<DailyUserGrowthDTO> fillMissingDates(LocalDate startDate, LocalDate endDate,
+                                                      List<DailyUserGrowthDTO> existingData) {
+        List<DailyUserGrowthDTO> result = new ArrayList<>();
+        Map<String, Long> dataMap = existingData.stream()
+                .collect(Collectors.toMap(DailyUserGrowthDTO::getDate, DailyUserGrowthDTO::getUserCount));
+
+        LocalDate currentDate = startDate;
+        long cumulativeCount = 0;
+
+        // 生成指定日期范围内的每一天
+        while (!currentDate.isAfter(endDate)) {
+            String dateStr = currentDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+            Long count = dataMap.getOrDefault(dateStr, 0L);
+            cumulativeCount += count;
+
+            DailyUserGrowthDTO dto = new DailyUserGrowthDTO();
+            dto.setDate(dateStr);
+            dto.setUserCount(count);
+            dto.setCumulativeCount(cumulativeCount);
+
+            result.add(dto);
+            currentDate = currentDate.plusDays(1);
+        }
+
+        return result;
     }
 }

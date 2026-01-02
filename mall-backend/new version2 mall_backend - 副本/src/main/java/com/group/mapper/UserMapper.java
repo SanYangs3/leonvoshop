@@ -1,11 +1,9 @@
 package com.group.mapper;
 
+import com.group.entity.DTO.DailyUserGrowthDTO;
 import com.group.entity.User;
 import com.group.entity.UserIdentity;
-import org.apache.ibatis.annotations.Insert;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Select;
-import org.apache.ibatis.annotations.Update;
+import org.apache.ibatis.annotations.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -73,4 +71,15 @@ public interface UserMapper {
 
     @Select("select count(*) from user where phone = #{phone} and role = 'user'")
     Integer searchPhone(String phone);
+
+    @Select("SELECT " +
+            "DATE(create_time) as date, " +
+            "COUNT(*) as userCount " +
+            "FROM user " +
+            "WHERE DATE(create_time) BETWEEN #{startDate} AND #{endDate} " +
+            "AND status = 1 " +
+            "GROUP BY DATE(create_time) " +
+            "ORDER BY DATE(create_time)")
+    List<DailyUserGrowthDTO> selectDailyUserGrowth(@Param("startDate") String startDate,
+                                                   @Param("endDate") String endDate);
 }

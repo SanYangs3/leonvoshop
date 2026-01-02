@@ -730,6 +730,461 @@ GET
 
 
 
+## 2.13  获取用户增长(周/月)
+
+1、获取用户增长趋势（所有）
+
+请求路径：
+
+/admin/user/growth/trend
+
+请求方式：
+
+GET
+
+返回格式：
+
+```
+{
+	"code": 1,
+	"data": {
+		"weeklyGrowth": [
+			{
+				"date": "2025-12-29",
+				"userCount": 0,
+				"cumulativeCount": 0
+			},
+			{
+				"date": "2025-12-30",
+				"userCount": 0,
+				"cumulativeCount": 0
+			},
+			{
+				"date": "2025-12-31",
+				"userCount": 0,
+				"cumulativeCount": 0
+			},
+			{
+				"date": "2026-01-01",
+				"userCount": 0,
+				"cumulativeCount": 0
+			},
+			{
+				"date": "2026-01-02",
+				"userCount": 0,
+				"cumulativeCount": 0
+			},
+			{
+				"date": "2026-01-03",
+				"userCount": 0,
+				"cumulativeCount": 0
+			},
+			{
+				"date": "2026-01-04",
+				"userCount": 0,
+				"cumulativeCount": 0
+			}
+		],
+		"monthlyGrowth": [
+			{
+				"date": "2026-01-01",
+				"userCount": 0,
+				"cumulativeCount": 0
+			},
+			{
+				"date": "2026-01-02",
+				"userCount": 0,
+				"cumulativeCount": 0
+			},
+			{
+				"date": "2026-01-03",
+				"userCount": 0,
+				"cumulativeCount": 0
+			},
+			{
+				"date": "2026-01-04",
+				"userCount": 0,
+				"cumulativeCount": 0
+			},
+			{
+				"date": "2026-01-05",
+				"userCount": 0,
+				"cumulativeCount": 0
+			},
+			{
+				"date": "2026-01-06",
+				"userCount": 0,
+				"cumulativeCount": 0
+			},
+			{
+				"date": "2026-01-07",
+				"userCount": 0,
+				"cumulativeCount": 0
+			},
+			{
+				"date": "2026-01-08",
+				"userCount": 0,
+				"cumulativeCount": 0
+			},
+			{
+				"date": "2026-01-09",
+				"userCount": 0,
+				"cumulativeCount": 0
+			},
+			{
+				"date": "2026-01-10",
+				"userCount": 0,
+				"cumulativeCount": 0
+			},
+			{
+				"date": "2026-01-11",
+				"userCount": 0,
+				"cumulativeCount": 0
+			},
+			{
+				"date": "2026-01-12",
+				"userCount": 0,
+				"cumulativeCount": 0
+			},
+			{
+				"date": "2026-01-13",
+				"userCount": 0,
+				"cumulativeCount": 0
+			},
+			{
+				"date": "2026-01-14",
+				"userCount": 0,
+				"cumulativeCount": 0
+			},
+			{
+				"date": "2026-01-15",
+				"userCount": 0,
+				"cumulativeCount": 0
+			},
+			{
+				"date": "2026-01-16",
+				"userCount": 0,
+				"cumulativeCount": 0
+			},
+			{
+				"date": "2026-01-17",
+				"userCount": 0,
+				"cumulativeCount": 0
+			},
+			{
+				"date": "2026-01-18",
+				"userCount": 0,
+				"cumulativeCount": 0
+			},
+			{
+				"date": "2026-01-19",
+				"userCount": 0,
+				"cumulativeCount": 0
+			},
+			{
+				"date": "2026-01-20",
+				"userCount": 0,
+				"cumulativeCount": 0
+			},
+			{
+				"date": "2026-01-21",
+				"userCount": 0,
+				"cumulativeCount": 0
+			},
+			{
+				"date": "2026-01-22",
+				"userCount": 0,
+				"cumulativeCount": 0
+			},
+			{
+				"date": "2026-01-23",
+				"userCount": 0,
+				"cumulativeCount": 0
+			},
+			{
+				"date": "2026-01-24",
+				"userCount": 0,
+				"cumulativeCount": 0
+			},
+			{
+				"date": "2026-01-25",
+				"userCount": 0,
+				"cumulativeCount": 0
+			},
+			{
+				"date": "2026-01-26",
+				"userCount": 0,
+				"cumulativeCount": 0
+			},
+			{
+				"date": "2026-01-27",
+				"userCount": 0,
+				"cumulativeCount": 0
+			},
+			{
+				"date": "2026-01-28",
+				"userCount": 0,
+				"cumulativeCount": 0
+			},
+			{
+				"date": "2026-01-29",
+				"userCount": 0,
+				"cumulativeCount": 0
+			},
+			{
+				"date": "2026-01-30",
+				"userCount": 0,
+				"cumulativeCount": 0
+			},
+			{
+				"date": "2026-01-31",
+				"userCount": 0,
+				"cumulativeCount": 0
+			}
+		],
+		"weekStartDate": "2025-12-29",
+		"weekEndDate": "2026-01-04",
+		"monthStartDate": "2026-01-01",
+		"monthEndDate": "2026-01-31"
+	},
+	"msg": null
+}
+```
+
+2、本周
+
+请求路径：
+
+/admin/user/growth/weekly
+
+请求格式：
+
+GET
+
+返回格式：
+
+```
+{
+	"code": 1,
+	"data": [
+		{
+			"date": "2025-12-29",
+			"userCount": 0,
+			"cumulativeCount": 0
+		},
+		{
+			"date": "2025-12-30",
+			"userCount": 0,
+			"cumulativeCount": 0
+		},
+		{
+			"date": "2025-12-31",
+			"userCount": 0,
+			"cumulativeCount": 0
+		},
+		{
+			"date": "2026-01-01",
+			"userCount": 0,
+			"cumulativeCount": 0
+		},
+		{
+			"date": "2026-01-02",
+			"userCount": 0,
+			"cumulativeCount": 0
+		},
+		{
+			"date": "2026-01-03",
+			"userCount": 0,
+			"cumulativeCount": 0
+		},
+		{
+			"date": "2026-01-04",
+			"userCount": 0,
+			"cumulativeCount": 0
+		}
+	],
+	"msg": null
+}
+```
+
+3、本月
+
+请求路径：
+
+/admin/user/growth/monthly
+
+请求方式：
+
+GET
+
+返回格式：
+
+```
+{
+	"code": 1,
+	"data": [
+		{
+			"date": "2026-01-01",
+			"userCount": 0,
+			"cumulativeCount": 0
+		},
+		{
+			"date": "2026-01-02",
+			"userCount": 0,
+			"cumulativeCount": 0
+		},
+		{
+			"date": "2026-01-03",
+			"userCount": 0,
+			"cumulativeCount": 0
+		},
+		{
+			"date": "2026-01-04",
+			"userCount": 0,
+			"cumulativeCount": 0
+		},
+		{
+			"date": "2026-01-05",
+			"userCount": 0,
+			"cumulativeCount": 0
+		},
+		{
+			"date": "2026-01-06",
+			"userCount": 0,
+			"cumulativeCount": 0
+		},
+		{
+			"date": "2026-01-07",
+			"userCount": 0,
+			"cumulativeCount": 0
+		},
+		{
+			"date": "2026-01-08",
+			"userCount": 0,
+			"cumulativeCount": 0
+		},
+		{
+			"date": "2026-01-09",
+			"userCount": 0,
+			"cumulativeCount": 0
+		},
+		{
+			"date": "2026-01-10",
+			"userCount": 0,
+			"cumulativeCount": 0
+		},
+		{
+			"date": "2026-01-11",
+			"userCount": 0,
+			"cumulativeCount": 0
+		},
+		{
+			"date": "2026-01-12",
+			"userCount": 0,
+			"cumulativeCount": 0
+		},
+		{
+			"date": "2026-01-13",
+			"userCount": 0,
+			"cumulativeCount": 0
+		},
+		{
+			"date": "2026-01-14",
+			"userCount": 0,
+			"cumulativeCount": 0
+		},
+		{
+			"date": "2026-01-15",
+			"userCount": 0,
+			"cumulativeCount": 0
+		},
+		{
+			"date": "2026-01-16",
+			"userCount": 0,
+			"cumulativeCount": 0
+		},
+		{
+			"date": "2026-01-17",
+			"userCount": 0,
+			"cumulativeCount": 0
+		},
+		{
+			"date": "2026-01-18",
+			"userCount": 0,
+			"cumulativeCount": 0
+		},
+		{
+			"date": "2026-01-19",
+			"userCount": 0,
+			"cumulativeCount": 0
+		},
+		{
+			"date": "2026-01-20",
+			"userCount": 0,
+			"cumulativeCount": 0
+		},
+		{
+			"date": "2026-01-21",
+			"userCount": 0,
+			"cumulativeCount": 0
+		},
+		{
+			"date": "2026-01-22",
+			"userCount": 0,
+			"cumulativeCount": 0
+		},
+		{
+			"date": "2026-01-23",
+			"userCount": 0,
+			"cumulativeCount": 0
+		},
+		{
+			"date": "2026-01-24",
+			"userCount": 0,
+			"cumulativeCount": 0
+		},
+		{
+			"date": "2026-01-25",
+			"userCount": 0,
+			"cumulativeCount": 0
+		},
+		{
+			"date": "2026-01-26",
+			"userCount": 0,
+			"cumulativeCount": 0
+		},
+		{
+			"date": "2026-01-27",
+			"userCount": 0,
+			"cumulativeCount": 0
+		},
+		{
+			"date": "2026-01-28",
+			"userCount": 0,
+			"cumulativeCount": 0
+		},
+		{
+			"date": "2026-01-29",
+			"userCount": 0,
+			"cumulativeCount": 0
+		},
+		{
+			"date": "2026-01-30",
+			"userCount": 0,
+			"cumulativeCount": 0
+		},
+		{
+			"date": "2026-01-31",
+			"userCount": 0,
+			"cumulativeCount": 0
+		}
+	],
+	"msg": null
+}
+```
+
+
+
 ## 2.15 用户禁用选项
 
 已在1.10中实现

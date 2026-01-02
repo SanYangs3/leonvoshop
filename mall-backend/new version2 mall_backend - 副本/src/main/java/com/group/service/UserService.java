@@ -1,10 +1,13 @@
 package com.group.service;
 
+import com.group.entity.DTO.DailyUserGrowthDTO;
+import com.group.entity.DTO.UserGrowthTrendDTO;
 import com.group.entity.Ordered;
 import com.group.entity.User;
 import com.group.entity.UserIdentity;
 import com.group.entity.vo.UserCountVO;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -62,4 +65,32 @@ public interface UserService {
     Integer searchUsername(String username);
 
     Integer searchPhone(String phone);
+
+
+
+    /**
+     * 获取用户增长趋势（本周和本月每日数据）
+     * @return UserGrowthTrendDTO
+     */
+    UserGrowthTrendDTO getUserGrowthTrend();
+
+    /**
+     * 获取指定日期范围内的每日用户增长
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @return 每日增长列表
+     */
+    List<DailyUserGrowthDTO> getDailyGrowthBetween(LocalDate startDate, LocalDate endDate);
+
+    /**
+     * 获取本周每日用户增长
+     * @return 本周每日增长列表
+     */
+    List<DailyUserGrowthDTO> getWeeklyGrowth();
+
+    /**
+     * 获取本月每日用户增长
+     * @return 本月每日增长列表
+     */
+    List<DailyUserGrowthDTO> getMonthlyGrowth();
 }
