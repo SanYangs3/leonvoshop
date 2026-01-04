@@ -1,0 +1,428 @@
+[file name]: App.vue
+<template>
+  <div id="app">
+    <!-- 导航栏 - 保留原有功能 -->
+    <nav v-if="shouldShowNav">
+      <div class="nav-content">
+        <router-link to="/" class="logo">
+          <h2>联想电脑商城</h2>
+        </router-link>
+        <div class="nav-links">
+          <router-link to="/">首页</router-link>
+          <router-link to="/search" class="search-link">
+            🔍 搜索
+          </router-link>
+          <!-- 购物车和订单中心只在登录时显示 -->
+          <router-link v-if="isLoggedIn" to="/cart" class="cart-link">
+            🛒 购物车
+          </router-link>
+          <router-link v-if="isLoggedIn" to="/user/orders" class="order-link">
+            📦 订单中心
+          </router-link>
+
+          <!-- 商家入口 -->
+          <router-link to="/business/login" class="business-link">
+            🏪 商家中心
+          </router-link>
+
+          <!-- 用户信息 -->
+          <div v-if="isLoggedIn" class="user-info">
+            <router-link to="/user/profile" class="welcome-link">
+              <span class="welcome">欢迎, {{ username }}</span>
+            </router-link>
+            <button @click="handleLogout" class="logout-btn">
+              退出
+            </button>
+          </div>
+          <router-link v-else to="/login" class="login-link">
+            👤 登录
+          </router-link>
+
+          <router-link to="/about">关于</router-link>
+        </div>
+      </div>
+    </nav>
+
+    <main>
+      <router-view/>
+    </main>
+
+    <!-- 只在非特殊页面显示尾部 -->
+    <Footer v-if="!isSpecialPage" />
+  </div>
+</template>
+
+<script>
+import Footer from '@/components/Footer.vue'
+
+export default {
+  name: 'App',
+  components: {
+    Footer
+  },
+  data() {
+    return {
+      isLoggedIn: false,
+      username: ''
+    };
+  },
+  computed: {
+    shouldShowNav() {
+      // 优先检查 meta.hideNav
+      if (this.$route.meta.hideNav) {
+        return false
+      }
+
+      const path = this.currentPath || this.$route.path
+
+      // 管理员登录页显示导航栏
+      if (path === '/admin/login') {
+        return true
+      }
+
+      // 商家页面不显示导航栏
+      if (path.startsWith('/business/')) {
+        return false
+      }
+
+      // 管理后台页面不显示导航栏
+      const adminPaths = [
+        '/admin/dashboard',
+        '/admin/users',
+        '/admin/products',
+        '/admin/orders',
+        '/admin/businesses',
+        '/admin/comments',
+        '/admin/settings'
+      ]
+
+      // 检查是否以管理后台路径开头
+      for (const adminPath of adminPaths) {
+        if (path.startsWith(adminPath)) {
+          return false
+        }
+      }
+
+      // 其他页面显示导航栏
+      return true
+    },
+
+    isAdminPage() {
+      const path = this.$route.path
+
+      // 管理员登录页也算管理后台相关页面，不显示Footer
+      if (path === '/admin/login') {
+        return true
+      }
+
+      // 检查是否以管理后台路径开头
+      const adminPaths = [
+        '/admin/dashboard',
+        '/admin/users',
+        '/admin/products',
+        '/admin/orders',
+        '/admin/businesses',
+        '/admin/comments',
+        '/admin/settings'
+      ]
+
+      for (const adminPath of adminPaths) {
+        if (path.startsWith(adminPath)) {
+          return true
+        }
+      }
+
+      return false
+    },
+
+    isSpecialPage() {
+      const path = this.$route.path
+      // 商家页面和管理后台页面都不显示Footer
+      return path.startsWith('/business/') || this.isAdminPage
+    }
+  },
+  mounted() {
+    this.checkLoginStatus();
+
+    // 监听storage事件
+    window.addEventListener('storage', this.handleStorageChange);
+  },
+  beforeUnmount() {
+    // 清理事件监听器
+    window.removeEventListener('storage', this.handleStorageChange);
+  },
+  watch: {
+    // 监听路由变化，强制更新 currentPath
+    '$route'(to) {
+      this.currentPath = to.path
+    }
+  },
+  methods: {
+    handleStorageChange(event) {
+      if (event.key === 'isLoggedIn' || event.key === 'username') {
+        this.checkLoginStatus();
+      }
+    },
+
+    checkLoginStatus() {
+      const loggedIn = localStorage.getItem('isLoggedIn') === 'true';
+      const user = localStorage.getItem('username');
+
+      this.isLoggedIn = loggedIn;
+      this.username = user || '';
+    },
+
+    handleLogout() {
+      if (confirm('确定要退出登录吗？')) {
+        // 不清空购物车，因为购物车数据在后端，用户重新登录后会自动加载
+        // 清除登录状态
+        localStorage.removeItem('isLoggedIn');
+        localStorage.removeItem('username');
+        localStorage.removeItem('userId');
+        localStorage.removeItem('userInfo');
+        this.isLoggedIn = false;
+        this.username = '';
+
+        // 跳转到首页
+        if (this.$route.path !== '/') {
+          this.$router.push('/');
+        }
+      }
+    }
+  }
+};
+</script>
+
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Microsoft YaHei', sans-serif;
+  background: white;
+  background-attachment: fixed;
+}
+
+#app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+nav {
+  background: linear-gradient(135deg, #1565c0 0%, #0d47a1 50%, #1976d2 100%);
+  color: white;
+  padding: 15px 0;
+  box-shadow: 0 2px 20px rgba(21, 101, 192, 0.2);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  border-bottom: 2px solid #64b5f6;
+}
+
+.nav-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+}
+
+.logo {
+  color: white;
+  text-decoration: none;
+}
+
+.logo h2 {
+  font-size: 24px;
+  margin: 0;
+  font-weight: 700;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+}
+
+.nav-links {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.nav-links a {
+  color: white;
+  text-decoration: none;
+  font-size: 16px;
+  padding: 8px 18px;
+  border-radius: 0;
+  transition: all 0.3s ease;
+  position: relative;
+  font-weight: 500;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.nav-links a:hover {
+  background: rgba(255,255,255,0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.router-link-exact-active {
+  background: rgba(255,255,255,0.2);
+  border-color: rgba(255,255,255,0.3);
+}
+
+/* 商家入口特殊样式 */
+.business-link {
+  background: rgba(255, 193, 7, 0.2);
+  border-color: rgba(255, 193, 7, 0.3);
+}
+
+.business-link:hover {
+  background: rgba(255, 193, 7, 0.3);
+}
+
+.cart-link {
+  position: relative;
+}
+
+.cart-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: linear-gradient(135deg, #ff9800 0%, #ff5722 100%);
+  color: white;
+  border-radius: 0;
+  width: 22px;
+  height: 22px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  box-shadow: 0 2px 8px rgba(255, 87, 34, 0.4);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+/* 用户信息样式 */
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: white;
+}
+
+.welcome-link {
+  text-decoration: none;
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.welcome-link:hover {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+.welcome {
+  font-size: 14px;
+  opacity: 0.9;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.logout-btn {
+  background: rgba(255,255,255,0.1);
+  color: white;
+  border: 1px solid rgba(255,255,255,0.3);
+  padding: 6px 14px;
+  border-radius: 0;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-weight: 500;
+}
+
+.logout-btn:hover {
+  background: rgba(255,255,255,0.25);
+  transform: translateY(-1px);
+}
+
+.login-link {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+main {
+  flex: 1;
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* 商家页面特殊处理 */
+main:has(.business-main),
+main:has(.business-login-view) {
+  padding: 0 !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+}
+
+/* 管理后台页面特殊处理 */
+main:has(.admin-main),
+main:has(.admin-login-view) {
+  padding: 0 !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .nav-content {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .nav-links {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+  }
+
+  .logo h2 {
+    font-size: 20px;
+  }
+
+  .nav-links a {
+    padding: 6px 12px;
+    font-size: 14px;
+  }
+}
+
+.search-link {
+  position: relative;
+}
+
+.search-link:hover::after {
+  content: '快速查找商品';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.8);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 0;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 1001;
+}
+</style>
