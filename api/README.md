@@ -667,7 +667,7 @@ GET
 }
 ```
 
-功能8：获取昨天和今天的销售额对比（包含百分比）
+## 2.8 获取昨天和今天的销售额对比（包含百分比）
 已在StatisticsController中实现
 请求路径：/api/statistics/sales-comparison
 请求方式：GET
@@ -682,7 +682,7 @@ GET
   }
 }
 
-功能9：获取昨天和今天的商品数对比（包含百分比）
+## 2.9获取昨天和今天的商品数对比（包含百分比）
 已在StatisticsController中实现
 请求路径：/api/statistics/product-comparison
 请求方式：GET
@@ -697,7 +697,7 @@ GET
   }
 }
 
-功能10：获取今日低库存商品数
+## 2.10 获取今日低库存商品数
 已在ProductController中实现
 请求路径：/api/products/low-stock/count
 请求方式：GET
@@ -708,7 +708,7 @@ GET
   "data": 5
 }
 
-功能11：获取今日各省份订单数
+## 2.11 获取今日各省份订单数
 已在OrderedController中实现
 请求路径：/api/orders/today/statistics/by-province
 请求方式：GET
@@ -728,7 +728,92 @@ GET
   ]
 }
 
+## 2.12 获取销售趋势（周/月）
+1.本周每日订单数统计
+请求路径：
+/api/orders/trend/weekly
 
+请求方式：
+GET
+
+返回格式：
+{
+  "code": 1,
+  "msg": null,
+  "data": [
+    {
+      "date": "2026-01-01",
+      "daily_count": 15,
+      "cumulative_count": 15  //累计数
+    },
+    {
+      "date": "2026-01-02", 
+      "daily_count": 12,
+      "cumulative_count": 27
+    },
+    {
+      "date": "2026-01-03",
+      "daily_count": 18,
+      "cumulative_count": 45
+    },
+    {
+      "date": "2026-01-04",
+      "daily_count": 10,
+      "cumulative_count": 55
+    },
+    {
+      "date": "2026-01-05",
+      "daily_count": 22,
+      "cumulative_count": 77
+    },
+    {
+      "date": "2026-01-06",
+      "daily_count": 25,
+      "cumulative_count": 102
+    },
+    {
+      "date": "2026-01-07",
+      "daily_count": 20,
+      "cumulative_count": 122
+    }
+  ]
+}
+
+2.本月每日订单数统计
+请求路径：
+/api/orders/trend/monthly
+
+请求方式：
+GET
+
+返回格式：
+{
+  "code": 1,
+  "msg": null,
+  "data": [
+    {
+      "date": "2026-01-01",
+      "daily_count": 15,
+      "cumulative_count": 15
+    },
+    {
+      "date": "2026-01-02",
+      "daily_count": 12,
+      "cumulative_count": 27
+    },
+    {
+      "date": "2026-01-03",
+      "daily_count": 18,
+      "cumulative_count": 45
+    },
+    // ... 中间省略 ...
+    {
+      "date": "2026-01-31",
+      "daily_count": 48,
+      "cumulative_count": 1250
+    }
+  ]
+}
 
 ## 2.13  获取用户增长(周/月)
 
@@ -2119,6 +2204,67 @@ POST /api/business/products/upload/{bid}
   "msg": "获取商家统计数据失败：数据库连接异常",
   "data": null
 }
+
+### 4.16 更新商家信息（密码除外）
+请求路径：
+/api/businesses/{bid}
+
+请求方式：
+PUT
+
+请求格式：
+{
+  "bname": "联想官方旗舰店",
+  "contactPerson": "张经理",
+  "contactPhone": "13800138001",
+  "contactEmail": "zhang@lenovo.com",
+  "address": "北京市海淀区中关村大街1号",
+  "description": "联想官方旗舰店，主营联想全系列产品"
+}
+
+返回格式：
+成功：
+{
+  "code": 1,
+  "data": true,
+  "msg": null
+}
+失败：
+{
+  "code": 0,
+  "data": null,
+  "msg": "更新商家信息失败：商家名称不能为空"
+}
+
+### 4.17 商家密码修改
+请求路径：
+/api/businesses/{bid}/password
+
+请求方式：
+PUT
+
+请求格式：
+{
+  "oldPassword": "123456",
+  "newPassword": "654321"
+}
+返回格式：
+成功：
+{
+  "code": 1,
+  "data": true,
+  "msg": null
+}
+失败：
+{
+  "code": 0,
+  "data": null,
+  "msg": "密码修改失败：旧密码错误"
+}
+
+相关接口：
+获取商家完整信息（用于修改前的数据回显）：
+GET /api/businesses/full/{bid}
 
 ## 5.购物车订单相关
 ### 5.1.用户id加入商品到购物车(如果商品已经在购物车中，则直接增加数量)
