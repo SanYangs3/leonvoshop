@@ -1,0 +1,155 @@
+-- 禁用外键检查
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- 按照依赖顺序清空表（从最依赖的表开始）
+TRUNCATE TABLE orderItem;
+TRUNCATE TABLE ordered;
+TRUNCATE TABLE feedback;
+TRUNCATE TABLE cart;
+TRUNCATE TABLE identity;
+TRUNCATE TABLE business_product;
+TRUNCATE TABLE product;
+TRUNCATE TABLE business;
+TRUNCATE TABLE user;
+
+-- 启用外键检查
+SET FOREIGN_KEY_CHECKS = 1;
+
+-- 1. 插入用户数据 (10-30条)
+INSERT INTO user (username, password, email, phone, status, avatar, role) VALUES
+('张三', '$2a$10$ABC123', 'zhangsan@example.com', '13800138001', 1, 'https://randomuser.me/api/portraits/men/1.jpg', 'user'),
+('李四', '$2a$10$DEF456', 'lisi@example.com', '13800138002', 1, 'https://randomuser.me/api/portraits/women/2.jpg', 'user'),
+('王五', '$2a$10$GHI789', 'wangwu@example.com', '13800138003', 1, 'https://randomuser.me/api/portraits/men/3.jpg', 'user'),
+('赵六', '$2a$10$JKL012', 'zhaoliu@example.com', '13800138004', 1, 'https://randomuser.me/api/portraits/women/4.jpg', 'user'),
+('钱七', '$2a$10$MNO345', 'qianqi@example.com', '13800138005', 1, 'https://randomuser.me/api/portraits/men/5.jpg', 'user'),
+('孙八', '$2a$10$PQR678', 'sunba@example.com', '13800138006', 1, 'https://randomuser.me/api/portraits/women/6.jpg', 'user'),
+('周九', '$2a$10$STU901', 'zhoujiu@example.com', '13800138007', 1, 'https://randomuser.me/api/portraits/men/7.jpg', 'user'),
+('吴十', '$2a$10$VWX234', 'wushi@example.com', '13800138008', 1, 'https://randomuser.me/api/portraits/women/8.jpg', 'user'),
+('admin', '$2a$10$YZA567', 'admin@example.com', '13800138009', 1, 'https://randomuser.me/api/portraits/men/9.jpg', 'admin'),
+('student1', '$2a$10$BCD890', 'student1@example.com', '13800138010', 1, 'https://randomuser.me/api/portraits/men/10.jpg', 'user');
+
+-- 2. 插入商家数据
+INSERT INTO business (bname, password) VALUES
+('华为官方旗舰店', '$2a$10$123ABC'),
+('苹果专卖店', '$2a$10$456DEF'),
+('戴尔电脑商城', '$2a$10$789GHI'),
+('联想官方店', '$2a$10$012JKL'),
+('小米官方旗舰店', '$2a$10$345MNO'),
+('华硕电脑专卖', '$2a$10$678PQR'),
+('雷蛇官方店', '$2a$10$901STU'),
+('微软官方商城', '$2a$10$234VWX');
+
+-- 3. 插入商品数据 (评分随机在80-120之间，用于推流)
+INSERT INTO product (name, price, description, CPU, GPU, storage, size, type, picture, stock, rating) VALUES
+('华为MateBook X Pro', 8999.00, '超轻薄全面屏笔记本', 'Intel i7-1165G7', 'Intel Iris Xe', '16GB DDR4', '13.9英寸', '笔记本电脑', 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853', 50, 95),
+('MacBook Pro 14英寸', 14999.00, '苹果专业笔记本', 'Apple M1 Pro', 'Apple M1 Pro GPU', '16GB', '14.2英寸', '笔记本电脑', 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8', 30, 100),
+('戴尔XPS 13', 9999.00, '超极本办公神器', 'Intel i7-1185G7', 'Intel Iris Xe', '16GB LPDDR4x', '13.4英寸', '笔记本电脑', 'https://images.unsplash.com/photo-1499951360447-b19be8fe80f5', 45, 92),
+('联想ThinkPad X1 Carbon', 10999.00, '商务办公笔记本', 'Intel i7-1165G7', 'Intel Iris Xe', '16GB', '14英寸', '笔记本电脑', 'https://images.unsplash.com/photo-1593640408182-31c70c8268f5', 40, 88),
+('小米笔记本Pro 15', 6999.00, '性价比高性能笔记本', 'Intel i5-11300H', 'NVIDIA MX450', '16GB DDR4', '15.6英寸', '笔记本电脑', 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed', 60, 86),
+('华硕ROG Zephyrus G14', 12999.00, '游戏笔记本电脑', 'AMD Ryzen 9 5900HS', 'NVIDIA RTX 3060', '16GB DDR4', '14英寸', '游戏本', 'https://images.unsplash.com/photo-1603302576837-37561b2e2302', 25, 105),
+('雷蛇灵刃14', 15999.00, '高性能游戏本', 'AMD Ryzen 9 5900HX', 'NVIDIA RTX 3070', '16GB DDR4', '14英寸', '游戏本', 'https://images.unsplash.com/photo-1600441563454-9948f8d8e7c9', 20, 110),
+('微软Surface Laptop 4', 9688.00, '触控屏办公笔记本', 'Intel i7-1185G7', 'Intel Iris Xe', '16GB LPDDR4x', '13.5英寸', '笔记本电脑', 'https://images.unsplash.com/photo-1499951360447-b19be8fe80f5', 35, 90),
+('华为MateBook 14', 6599.00, '2K触控全面屏', 'Intel i5-1135G7', 'Intel Iris Xe', '16GB DDR4', '14英寸', '笔记本电脑', 'https://images.unsplash.com/photo-1593640408182-31c70c8268f5', 55, 89),
+('MacBook Air M1', 7999.00, '轻薄便携笔记本', 'Apple M1', 'Apple M1 GPU', '8GB', '13.3英寸', '笔记本电脑', 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8', 40, 98),
+('戴尔游匣G15', 8299.00, '高性能游戏本', 'Intel i7-11800H', 'NVIDIA RTX 3050 Ti', '16GB DDR4', '15.6英寸', '游戏本', 'https://images.unsplash.com/photo-1603302576837-37561b2e2302', 30, 92),
+('联想拯救者Y9000P', 9999.00, '电竞游戏笔记本', 'Intel i7-11800H', 'NVIDIA RTX 3060', '16GB DDR4', '16英寸', '游戏本', 'https://images.unsplash.com/photo-1600441563454-9948f8d8e7c9', 28, 96),
+('华硕天选2', 7699.00, '二次元游戏本', 'AMD Ryzen 7 5800H', 'NVIDIA RTX 3050', '16GB DDR4', '15.6英寸', '游戏本', 'https://images.unsplash.com/photo-1603302576837-37561b2e2302', 32, 87),
+('雷蛇灵刃15', 18999.00, '高端游戏笔记本', 'Intel i7-11800H', 'NVIDIA RTX 3080', '32GB DDR4', '15.6英寸', '游戏本', 'https://images.unsplash.com/photo-1600441563454-9948f8d8e7c9', 15, 115),
+('微软Surface Pro 8', 10588.00, '二合一平板电脑', 'Intel i7-1185G7', 'Intel Iris Xe', '16GB LPDDR4x', '13英寸', '二合一平板', 'https://images.unsplash.com/photo-1499951360447-b19be8fe80f5', 25, 91),
+('小米笔记本Pro X', 9999.00, 'OLED屏幕笔记本', 'Intel i5-11320H', 'NVIDIA MX450', '16GB LPDDR4x', '15.6英寸', '笔记本电脑', 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed', 35, 85),
+('华为MateBook D 14', 5299.00, '入门级办公笔记本', 'Intel i5-1135G7', 'Intel Iris Xe', '16GB DDR4', '14英寸', '笔记本电脑', 'https://images.unsplash.com/photo-1593640408182-31c70c8268f5', 70, 83),
+('苹果iMac 24英寸', 12999.00, '一体式台式电脑', 'Apple M1', 'Apple M1 GPU', '16GB', '24英寸', '一体机', 'https://images.unsplash.com/photo-1518709268805-4e9042af2176', 20, 102),
+('戴尔成就3400', 4799.00, '学生办公笔记本', 'Intel i5-1135G7', 'Intel Iris Xe', '8GB DDR4', '14英寸', '笔记本电脑', 'https://images.unsplash.com/photo-1499951360447-b19be8fe80f5', 65, 80),
+('联想小新Air 14', 5699.00, '轻薄办公笔记本', 'Intel i5-1155G7', 'Intel Iris Xe', '16GB DDR4', '14英寸', '笔记本电脑', 'https://images.unsplash.com/photo-1593640408182-31c70c8268f5', 50, 84);
+
+-- 4. 插入商家-商品关联数据
+INSERT INTO business_product (bid, pid) VALUES
+(1, 1), (1, 9), (1, 17),  -- 华为官方旗舰店销售华为产品
+(2, 2), (2, 10), (2, 18), -- 苹果专卖店销售苹果产品
+(3, 3), (3, 11), (3, 19), -- 戴尔电脑商城销售戴尔产品
+(4, 4), (4, 12), (4, 20), -- 联想官方店销售联想产品
+(5, 5), (5, 16),          -- 小米官方旗舰店销售小米产品
+(6, 6), (6, 13),          -- 华硕电脑专卖销售华硕产品
+(7, 7), (7, 14),          -- 雷蛇官方店销售雷蛇产品
+(8, 8), (8, 15),          -- 微软官方商城销售微软产品
+(1, 6), (2, 14), (3, 12), (4, 11); -- 一些商家也销售其他品牌
+
+-- 5. 插入身份数据
+INSERT INTO identity (level, student, points, uid) VALUES
+(2, 0, 3500, 1),
+(3, 1, 8500, 2),
+(1, 0, 1200, 3),
+(4, 0, 18500, 4),
+(2, 1, 4200, 5),
+(3, 0, 7800, 6),
+(1, 1, 800, 7),
+(5, 0, 24500, 8),
+(5, 0, 30000, 9),
+(2, 1, 3800, 10);
+
+-- 6. 插入购物车数据
+INSERT INTO cart (uid, pid, quantity, bid) VALUES
+(1, 1, 1, 1),
+(1, 3, 2, 3),
+(2, 2, 1, 2),
+(2, 5, 1, 5),
+(3, 4, 1, 4),
+(4, 7, 1, 7),
+(5, 6, 1, 6),
+(5, 8, 1, 8),
+(6, 10, 2, 2),
+(7, 9, 1, 1),
+(8, 11, 1, 3),
+(9, 12, 1, 4),
+(10, 13, 1, 6),
+(10, 14, 1, 7);
+
+-- 7. 插入评论数据
+INSERT INTO feedback (uid, pid, feed_time, star, comment) VALUES
+(1, 1, '2024-01-15 10:30:00', 5, '华为笔记本质量很好，运行流畅，非常满意！'),
+(2, 2, '2024-01-16 14:20:00', 5, 'MacBook Pro性能强大，屏幕效果惊艳'),
+(3, 3, '2024-01-17 09:15:00', 4, '戴尔XPS轻薄便携，适合商务人士'),
+(4, 4, '2024-01-18 16:45:00', 5, 'ThinkPad键盘手感一流，耐用性高'),
+(5, 5, '2024-01-19 11:30:00', 4, '小米笔记本性价比很高，物超所值'),
+(6, 6, '2024-01-20 13:20:00', 5, '华硕ROG游戏性能强劲，散热效果不错'),
+(7, 7, '2024-01-21 15:10:00', 4, '雷蛇设计很酷，但价格稍高'),
+(8, 8, '2024-01-22 10:05:00', 5, 'Surface触控屏很灵敏，适合设计师'),
+(9, 9, '2024-01-23 14:50:00', 4, '华为MateBook 14屏幕效果不错'),
+(10, 10, '2024-01-24 09:30:00', 5, 'MacBook Air续航真的很棒，适合出差'),
+(1, 11, '2024-01-25 16:20:00', 4, '戴尔游匣游戏性能还可以'),
+(2, 12, '2024-01-26 11:15:00', 5, '联想拯救者玩游戏很爽'),
+(3, 13, '2024-01-27 13:40:00', 3, '华硕天选2性能一般，有待提升'),
+(4, 14, '2024-01-28 15:25:00', 5, '雷蛇灵刃15顶级游戏体验'),
+(5, 15, '2024-01-29 10:10:00', 4, 'Surface Pro 8便携性很好');
+
+-- 8. 插入订单数据
+INSERT INTO ordered (status, order_time, amount, uid, receiver_address, receiver_name, receiver_phone, province, remark) VALUES
+(2, '2024-01-10 09:30:00', 8999.00, 1, '北京市海淀区中关村大街1号', '张三', '13800138001', '北京市', '请工作日配送'),
+(3, '2024-01-12 14:20:00', 14999.00, 2, '上海市浦东新区陆家嘴金融区', '李四', '13800138002', '上海市', '需要发票'),
+(1, '2024-01-15 11:15:00', 19998.00, 3, '广州市天河区珠江新城', '王五', '13800138003', '广东省', '尽快发货'),
+(2, '2024-01-18 16:45:00', 10999.00, 4, '深圳市南山区科技园', '赵六', '13800138004', '广东省', ''),
+(3, '2024-01-20 10:30:00', 13998.00, 5, '杭州市西湖区文三路', '钱七', '13800138005', '浙江省', '礼品包装'),
+(2, '2024-01-22 13:20:00', 9688.00, 6, '南京市鼓楼区中山路', '孙八', '13800138006', '江苏省', ''),
+(1, '2024-01-24 15:10:00', 18999.00, 7, '成都市武侯区天府软件园', '周九', '13800138007', '四川省', '下午配送'),
+(3, '2024-01-26 09:45:00', 6599.00, 8, '武汉市武昌区光谷广场', '吴十', '13800138008', '湖北省', ''),
+(2, '2024-01-28 14:30:00', 25998.00, 9, '西安市雁塔区高新区', 'Admin', '13800138009', '陕西省', '公司采购'),
+(1, '2024-01-30 11:20:00', 7699.00, 10, '重庆市渝北区新牌坊', 'Student', '13800138010', '重庆市', '学生优惠');
+
+-- 9. 插入订单详情数据 (subtotal会自动计算)
+INSERT INTO orderItem (oid, pid, name, price, quantity, bid) VALUES
+(1, 1, '华为MateBook X Pro', 8999.00, 1, 1),
+(2, 2, 'MacBook Pro 14英寸', 14999.00, 1, 2),
+(3, 3, '戴尔XPS 13', 9999.00, 2, 3),
+(4, 4, '联想ThinkPad X1 Carbon', 10999.00, 1, 4),
+(5, 6, '华硕ROG Zephyrus G14', 12999.00, 1, 6),
+(5, 7, '雷蛇灵刃14', 999.00, 1, 7), -- 注意：这里价格有误，应该是15999.00，但为了测试保留原样
+(6, 8, '微软Surface Laptop 4', 9688.00, 1, 8),
+(7, 14, '雷蛇灵刃15', 18999.00, 1, 7),
+(8, 9, '华为MateBook 14', 6599.00, 1, 1),
+(9, 2, 'MacBook Pro 14英寸', 14999.00, 1, 2),
+(9, 10, 'MacBook Air M1', 10999.00, 1, 2), -- 注意：价格修正为7999.00更合理
+(10, 13, '华硕天选2', 7699.00, 1, 6);
+
+-- 更新有误的价格数据
+UPDATE orderItem SET price = 15999.00 WHERE id = 6; -- 修正雷蛇灵刃14价格
+UPDATE orderItem SET price = 7999.00 WHERE id = 11; -- 修正MacBook Air价格
