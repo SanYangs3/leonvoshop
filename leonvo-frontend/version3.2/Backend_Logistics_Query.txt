@@ -1,0 +1,70 @@
+// ==========================================
+// 1. 实体类扩展: com.group.entity.Ordered
+// ==========================================
+// 请确保 Ordered 实体类中有接收物流信息的字段
+// 如果没有，请添加，或者创建一个 OrderedDetailDTO
+/*
+public class Ordered {
+    // ... 原有字段 ...
+    
+    // 新增物流相关字段（用于前端展示）
+    private String logisticsCompany; // 对应 order_logistics.logistics_company
+    private String trackingNumber;   // 对应 order_logistics.tracking_number
+    
+    // getter/setter ...
+}
+*/
+
+// ==========================================
+// 2. Service实现类修改: com.group.service.impl.OrderedServiceImpl
+// ==========================================
+package com.group.service.impl;
+
+import com.group.entity.Ordered;
+import com.group.entity.OrderLogistics;
+import com.group.mapper.OrderedMapper;
+import com.group.mapper.OrderLogisticsMapper; // 之前创建的Mapper
+import com.group.service.OrderedService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class OrderedServiceImpl implements OrderedService {
+
+    @Autowired
+    private OrderedMapper orderedMapper;
+
+    @Autowired
+    private OrderLogisticsMapper orderLogisticsMapper;
+
+    // ... 其他方法 ...
+
+    /**
+     * 获取订单详情（包含物流信息）
+     */
+    @Override
+    public Ordered getOrderDetailById(Integer oid) {
+        // 1. 获取基本订单信息
+        Ordered order = orderedMapper.selectById(oid); // 或 selectDetailById
+        if (order == null) {
+            return null;
+        }
+
+        // 2. 获取物流信息并填充
+        // 注意：只有已发货(2)或已完成(3)的订单才可能有物流信息
+        if (order.getStatus() >= 2) {
+            OrderLogistics logistics = orderLogisticsMapper.selectByOrderId(oid);
+            if (logistics != null) {
+                // 将物流信息塞入 order 对象
+                // 请确保 Ordered 类有这些字段，或者使用 Map/DTO 返回
+                order.setLogisticsCompany(logistics.getLogisticsCompany());
+                order.setTrackingNumber(logistics.getTrackingNumber());
+                
+                // 如果前端用的是 courier 字段，也可以设置进去
+                // order.setCourier(logistics.getLogisticsCompany());
+            }
+        }
+        
+        return order;
+    }
+}

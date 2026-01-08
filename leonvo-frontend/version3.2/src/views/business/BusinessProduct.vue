@@ -385,9 +385,11 @@ export default {
 
       // 状态过滤
       if (this.statusFilter !== 'all') {
-        filtered = filtered.filter(p =>
-            p.status !== undefined ? p.status.toString() === this.statusFilter : true
-        )
+        filtered = filtered.filter(p => {
+            // 如果状态未定义，默认为0（已下架）
+            const status = (p.status !== undefined && p.status !== null) ? p.status : 0;
+            return status.toString() === this.statusFilter;
+        })
       }
 
       // 排序
@@ -474,46 +476,49 @@ export default {
        const bid = this.getBusinessId();
        
        try {
-         const response = await axios.post(apiConfig.business.promoteProduct(bid, this.selectedProduct.pid), {
+         // 1. 扣除积分 (调用 promoteProduct 接口)
+         // 注意：如果后端 promoteProduct 没有更新 rating，我们需要额外调用 updateProduct
+         const promoteResponse = await axios.post(apiConfig.business.promoteProduct(bid, this.selectedProduct.pid), {
            points: this.promotePoints
          });
 
-         if (response.data.code === 1 || true) { // 模拟成功
-            alert(`推广成功！商品评分增加 ${this.promotePoints}`);
-            
-            // 更新本地显示的积分和热度
-            this.businessPoints -= this.promotePoints;
-            const localInfo = JSON.parse(localStorage.getItem('businessInfo') || '{}');
-            localInfo.points = this.businessPoints;
-            localStorage.setItem('businessInfo', JSON.stringify(localInfo));
-            
-            // 更新列表中的商品热度
-            const product = this.products.find(p => p.pid === this.selectedProduct.pid);
-            if (product) {
-                // 确保有基础分100
-                const currentHeat = product.heat || 100;
-                product.heat = currentHeat + this.promotePoints;
-            }
-            
-            this.closePromoteModal();
-         } else {
-            alert(response.data.message || '推广失败');
+         // 2. 更新本地显示的积分
+         this.businessPoints -= this.promotePoints;
+         const localInfo = JSON.parse(localStorage.getItem('businessInfo') || '{}');
+         localInfo.points = this.businessPoints;
+         localStorage.setItem('businessInfo', JSON.stringify(localInfo));
+
+         // 3. 计算新评分并保存到数据库 (Rating)
+         const product = this.products.find(p => p.pid === this.selectedProduct.pid);
+         if (product) {
+             const currentHeat = product.heat || 100; // 使用 heat 作为 rating 显示
+             const newRating = currentHeat + this.promotePoints;
+             
+             // 更新本地
+             product.heat = newRating;
+             product.rating = newRating; // 确保 rating 字段也更新
+
+             // 显式调用更新商品接口保存 Rating
+             try {
+                 const updateData = {
+                     ...product,
+                     rating: newRating,
+                     heat: newRating // 同时更新两个字段以防万一
+                 };
+                 await axios.put(apiConfig.business.updateProduct(bid), updateData);
+                 console.log('评分已保存到数据库:', newRating);
+             } catch (updateError) {
+                 console.error('保存评分失败:', updateError);
+                 alert('推广成功，但评分保存失败，请重试');
+             }
          }
+
+         alert(`推广成功！商品评分增加 ${this.promotePoints}`);
+         this.closePromoteModal();
+
        } catch (error) {
          console.error('推广失败', error);
-         // 模拟成功逻辑（如果API未实现）
-          alert(`推广成功！商品评分增加 ${this.promotePoints} (模拟)`);
-          this.businessPoints -= this.promotePoints;
-          const localInfo = JSON.parse(localStorage.getItem('businessInfo') || '{}');
-          localInfo.points = this.businessPoints;
-          localStorage.setItem('businessInfo', JSON.stringify(localInfo));
-          
-          const product = this.products.find(p => p.pid === this.selectedProduct.pid);
-          if (product) {
-             const currentHeat = product.heat || 100;
-             product.heat = currentHeat + this.promotePoints;
-          }
-          this.closePromoteModal();
+         alert('推广失败: ' + (error.response?.data?.message || error.message));
        } finally {
          this.loading = false;
        }
@@ -543,33 +548,161 @@ export default {
           return
         }
 
-        // 使用商家商品接口 - 使用api.config.js中的配置
-        const apiUrl = apiConfig.business.getProducts(bid)
-        console.log('商品列表API:', apiUrl)
+        // 并行请求商品和订单数据，以便计算销量
+        const [productsRes, ordersRes] = await Promise.all([
+            axios.get(apiConfig.business.getProducts(bid)),
+            axios.get(apiConfig.business.getOrders(bid)).catch(e => ({ data: { code: 0, data: [] } }))
+        ]);
 
-        const response = await axios.get(apiUrl, {
-          timeout: 10000
-        })
-
-        console.log('商品列表响应:', response.data)
-
-        if (response.data.code === 1) {
-          this.products = response.data.data || []
-          console.log(`加载了 ${this.products.length} 个商品`)
-        } else {
-          console.warn('获取商品列表失败:', response.data.message)
-          this.products = []
+        let products = [];
+        if (productsRes.data.code === 1) {
+          products = productsRes.data.data || []
         }
+
+        let orders = [];
+        if (ordersRes.data && ordersRes.data.code === 1) {
+            orders = ordersRes.data.data || [];
+            console.log('原始订单数据:', orders.slice(0, 3)); // 打印前3个订单用于调试
+        } else {
+            console.warn('获取订单失败或无数据:', ordersRes.data);
+        }
+
+        // 2.1 建立商品ID和名称映射表
+        const productMap = {};
+        const nameToPidMap = {};
+        products.forEach(p => {
+            if (p.pid) {
+                productMap[p.pid] = p;
+                if (p.name) nameToPidMap[p.name.trim()] = p.pid;
+            }
+        });
+
+        // 2.2 准备补全订单信息的逻辑
+        const detailPromises = [];
+
+        orders.forEach(order => {
+            let hasValidInfo = false;
+            
+            // 检查是否有有效的商品信息
+            if (order.items && Array.isArray(order.items) && order.items.length > 0) {
+                 const firstItem = order.items[0];
+                 if (firstItem.name && firstItem.name !== '商品' && firstItem.name !== '默认商品' && firstItem.name !== '未知商品') {
+                     hasValidInfo = true;
+                 }
+            } else if (order.product_name || order.productName) {
+                hasValidInfo = true;
+            }
+            
+            // 如果信息不全，且有OID，加入补全队列
+            if (!hasValidInfo && (order.oid || order.id)) {
+                const oid = order.oid || order.id;
+                // 尝试从本地 productMap 反查
+                let foundInLocal = false;
+                if ((order.pid || order.productId) && productMap[order.pid || order.productId]) {
+                    const p = productMap[order.pid || order.productId];
+                    if (!order.items || !order.items.length) {
+                        order.items = [{ name: p.name, quantity: order.quantity || 1, pid: p.pid }];
+                    } else {
+                        order.items[0].name = p.name;
+                        order.items[0].pid = p.pid;
+                    }
+                    foundInLocal = true;
+                }
+                
+                // 如果本地也没找到，请求详情接口
+                if (!foundInLocal) {
+                    detailPromises.push(
+                        axios.get(apiConfig.order.getOrderDetail(oid))
+                            .then(res => {
+                                if (res.data.code === 1 && res.data.data) {
+                                    const detail = res.data.data;
+                                    let name = '';
+                                    let pid = '';
+                                    
+                                    if (detail.items && detail.items.length) {
+                                        name = detail.items[0].name;
+                                        pid = detail.items[0].id || detail.items[0].pid;
+                                    } else if (detail.product_name) {
+                                        name = detail.product_name;
+                                    }
+                                    
+                                    if (name) {
+                                        if (!order.items || !order.items.length) {
+                                            order.items = [{ name: name, quantity: 1, pid: pid }];
+                                        } else {
+                                            order.items[0].name = name;
+                                            if (pid) order.items[0].pid = pid;
+                                        }
+                                    }
+                                }
+                            })
+                            .catch(e => console.warn(`补全订单 ${oid} 详情失败`, e))
+                    );
+                }
+            }
+        });
+
+        // 等待所有详情补全完成
+        if (detailPromises.length > 0) {
+            console.log(`正在补全 ${detailPromises.length} 个订单的商品信息...`);
+            await Promise.allSettled(detailPromises);
+        }
+
+        // 2.3 计算每个商品的销量
+        const salesMap = {};
+        
+        orders.forEach(order => {
+            // 归一化处理 items
+            let items = [];
+            if (order.items && Array.isArray(order.items)) {
+                items = order.items;
+            } else if (order.products && Array.isArray(order.products)) {
+                items = order.products;
+            } else if (order.pid || order.productName) {
+                items = [{
+                    pid: order.pid,
+                    name: order.productName,
+                    quantity: order.quantity || 1
+                }];
+            }
+
+            items.forEach(item => {
+                const qty = parseInt(item.quantity || item.count || 1);
+                
+                // 1. 优先使用 PID 匹配
+                if (item.pid || item.id) {
+                    const pidStr = String(item.pid || item.id);
+                    salesMap[pidStr] = (salesMap[pidStr] || 0) + qty;
+                } 
+                // 2. 其次使用名称匹配
+                else if (item.name) {
+                    const cleanName = item.name.trim();
+                    if (nameToPidMap[cleanName]) {
+                        const pidStr = String(nameToPidMap[cleanName]);
+                        salesMap[pidStr] = (salesMap[pidStr] || 0) + qty;
+                    } else {
+                        salesMap[cleanName] = (salesMap[cleanName] || 0) + qty;
+                    }
+                }
+            });
+        });
+
+        console.log('商品管理-销量统计:', salesMap);
+
+        // 将销量合并到商品数据中
+        this.products = products.map(p => ({
+            ...p,
+            sales_count: (salesMap[String(p.pid)] || 0) + (p.name ? (salesMap[p.name.trim()] || 0) : 0) || p.sales_count || 0,
+            // 确保 heat 优先使用数据库中的 rating，如果没有则使用 heat，最后默认为 100
+            heat: p.rating || p.heat || 100,
+            rating: p.rating || p.heat || 100
+        }));
+        
+        console.log(`加载了 ${this.products.length} 个商品`);
 
       } catch (error) {
         console.error('加载商品失败:', error)
-        if (error.response?.status === 404) {
-          alert('商品接口尚未实现')
-        } else if (error.code === 'ERR_NETWORK') {
-          alert('网络连接失败')
-        } else {
-          alert('加载商品失败')
-        }
+        // ... (error handling)
         this.products = []
       } finally {
         this.loading = false

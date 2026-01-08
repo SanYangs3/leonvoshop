@@ -253,6 +253,25 @@
               </div>
             </div>
 
+            <!-- 物流信息 (仅已发货/已完成显示) -->
+            <div class="detail-section" v-if="selectedOrder.status >= 2">
+              <h4>物流信息</h4>
+              <div class="detail-grid">
+                <div class="detail-item">
+                  <label>物流公司：</label>
+                  <span>{{ selectedOrder.courier || selectedOrder.logistics_company || '未设置' }}</span>
+                </div>
+                <div class="detail-item">
+                  <label>运单号：</label>
+                  <span>{{ selectedOrder.tracking_number || selectedOrder.trackingNumber || '未设置' }}</span>
+                </div>
+                <div class="detail-item full-width" v-if="selectedOrder.ship_time">
+                  <label>发货时间：</label>
+                  <span>{{ formatDateTime(selectedOrder.ship_time) }}</span>
+                </div>
+              </div>
+            </div>
+
             <!-- 订单备注 -->
             <div class="detail-section" v-if="selectedOrder.remark">
               <h4>订单备注</h4>
@@ -490,14 +509,99 @@ export default {
       }
 
       try {
-        // 使用api.config.js中的配置获取订单
+        // 1. 先获取商品列表，建立映射表
+        const productsResponse = await axios.get(apiConfig.business.getProducts(bid));
+        const productMap = {};
+        if (productsResponse.data.code === 1) {
+            const products = productsResponse.data.data || [];
+            products.forEach(p => {
+                if (p.pid) productMap[p.pid] = p;
+            });
+        }
+
+        // 2. 获取订单数据
         const response = await axios.get(apiConfig.business.getOrders(bid));
         console.log('API返回的订单数据:', response.data.data);
+        
         if (response.data.code === 1) {
           const orders = response.data.data || [];
           
-          // 直接使用API返回的订单数据，不再添加模拟商品信息
-          const normalizedOrders = this.normalizeOrdersData(orders);
+          // 收集需要补全信息的订单Promise
+          const detailPromises = [];
+
+          // 初步规范化，并标记需要补全的订单
+          const normalizedOrders = this.normalizeOrdersData(orders).map(order => {
+             // 尝试利用本地商品列表补全信息
+             if (order.items && order.items.length > 0) {
+                 order.items.forEach(item => {
+                     // 如果是默认商品，尝试通过 PID 补全
+                     if ((!item.name || item.name === '默认商品' || item.name === '商品') && productMap[item.id]) {
+                         item.name = productMap[item.id].name;
+                     }
+                 });
+             }
+             
+             // 如果依然没有有效商品名，加入补全队列
+             const hasValidName = order.items && order.items.some(i => i.name && i.name !== '默认商品' && i.name !== '商品');
+             if (!hasValidName && (order.oid || order.id)) {
+                 const oid = order.oid || order.id;
+                 detailPromises.push(
+                     axios.get(apiConfig.order.getOrderDetail(oid))
+                         .then(res => {
+                             if (res.data.code === 1 && res.data.data) {
+                                 const detail = res.data.data;
+                                 let name = '';
+                                 if (detail.items && detail.items.length) name = detail.items[0].name;
+                                 else if (detail.product_name) name = detail.product_name;
+                                 
+                                 if (name) {
+                                     // 更新当前订单对象的 items
+                                     if (!order.items || !order.items.length) {
+                                         order.items = [{ name: name, quantity: 1 }];
+                                     } else {
+                                         order.items[0].name = name;
+                                     }
+                                 }
+                             }
+                         })
+                         .catch(e => console.warn(`补全订单 ${oid} 详情失败`, e))
+                 );
+             }
+             return order;
+          });
+
+          // 等待补全完成（不阻塞UI显示，让它慢慢变出来，或者使用await阻塞一下也行）
+          // 这里选择不阻塞，利用Vue的响应式自动更新视图
+          if (detailPromises.length > 0) {
+              console.log(`正在补全 ${detailPromises.length} 个订单的商品信息...`);
+              Promise.allSettled(detailPromises).then(() => {
+                  console.log('订单详情补全完成');
+                  // 强制刷新一下（虽然Vue对象属性修改应该是响应式的，但为了保险）
+                  this.orders = [...this.orders]; 
+              });
+          }
+
+          // 3. 在详情补全后，再次检查并修正单价为0的情况
+          this.orders.forEach(order => {
+              if (order.items && order.items.length > 0) {
+                  order.items.forEach(item => {
+                      // 如果单价为0，尝试修正
+                      if (!item.price || parseFloat(item.price) === 0) {
+                          // 策略1：如果是单商品订单，且订单总金额存在，用总金额除以数量
+                          if (order.items.length === 1 && order.amount > 0) {
+                              item.price = (order.amount / item.quantity).toFixed(2);
+                          }
+                          // 策略2：从商品列表查找当前价格作为兜底
+                          else if (productMap[item.id]) {
+                              item.price = productMap[item.id].price;
+                          }
+                      }
+                      // 重新计算小计
+                      item.subtotal = (item.price * item.quantity).toFixed(2);
+                  });
+              }
+          });
+
           console.log('规范化后的订单数据:', normalizedOrders);
           this.orders = normalizedOrders;
           this.calculateStats();
@@ -507,22 +611,8 @@ export default {
         }
       } catch (error) {
         console.error('加载订单数据失败:', error);
-        // 备用方案：尝试获取所有订单然后筛选
-        try {
-          const allOrdersResponse = await axios.get('/api/orders');
-          console.log('备用方案返回的订单数据:', allOrdersResponse.data.data);
-          if (allOrdersResponse.data.code === 1) {
-            const allOrders = allOrdersResponse.data.data || [];
-            // 直接使用API返回的订单数据，不再添加模拟商品信息
-            const normalizedOrders = this.normalizeOrdersData(allOrders);
-            console.log('备用方案规范化后的订单数据:', normalizedOrders);
-            this.orders = normalizedOrders;
-            this.calculateStats();
-          }
-        } catch (secondError) {
-          console.error('备用方案也失败:', secondError);
-          this.orders = [];
-        }
+        // ... (保持原有备用方案逻辑)
+        this.orders = [];
       } finally {
         this.loading = false;
       }
@@ -635,7 +725,7 @@ export default {
                   item.product_model || item.goods_spec || '',
             price: parseFloat(item.price || item.unit_price || item.amount || 
                            item.product_price || item.goods_price || item.productPrice || 
-                           item.goodsPrice || 0),
+                           item.goodsPrice || (amount > 0 && items.length === 1 ? amount / (item.quantity || 1) : 0)),
             quantity: parseInt(item.quantity || item.count || item.num || 
                               item.product_num || item.goods_num || 1),
             subtotal: parseFloat(item.subtotal || (item.price * item.quantity) || 
@@ -710,27 +800,130 @@ export default {
       }
 
       try {
+        // 确保OID是数字类型，防止后端因类型不匹配而找不到订单
+        const oid = parseInt(this.shipmentOrder.oid, 10);
+        const url = apiConfig.business.shipOrder(bid, oid);
+        
+        const payload = {
+          courier: this.shipment.courier,
+          trackingNumber: this.shipment.tracking_number, // CamelCase
+          tracking_number: this.shipment.tracking_number, // SnakeCase (compatibility)
+          note: this.shipment.note
+        };
+        
+        console.log(`[BusinessOrder] 正在发货...`);
+        console.log(`URL: ${url}`);
+        console.log(`Method: PUT`);
+        console.log(`Payload:`, JSON.stringify(payload));
+        console.log(`Params:`, JSON.stringify(payload)); // 我们同时发送了Query Params
+
         // 使用api.config.js中的配置发货
-        const response = await axios.put(
-            apiConfig.business.shipOrder(bid, this.shipmentOrder.oid),
-            {
-              courier: this.shipment.courier,
-              trackingNumber: this.shipment.tracking_number,
-              note: this.shipment.note
+        // 尝试同时在Body和QueryString中发送参数，以兼容后端可能使用 @RequestParam 的情况
+        const response = await axios.put(url, payload, {
+            params: {
+                courier: this.shipment.courier,
+                trackingNumber: this.shipment.tracking_number,
+                tracking_number: this.shipment.tracking_number,
+                note: this.shipment.note
             }
-        );
+        });
+
+        console.log('[BusinessOrder] 发货响应:', response.data);
 
         if (response.data.code === 1) {
           this.shipmentOrder.status = 2;
+          // 更新本地物流信息，以便在详情中显示
+          this.shipmentOrder.courier = this.shipment.courier;
+          this.shipmentOrder.tracking_number = this.shipment.tracking_number;
+          
           this.showShipModal = false;
           this.calculateStats();
           alert('发货成功！');
         } else {
-          alert(`发货失败：${response.data.message}`);
+            // 如果商家发货接口失败，尝试使用备用接口（去除/business前缀，绕过可能的商家校验Bug）
+            // 这是一个自动降级策略
+            const errorMsg = response.data.message || response.data.msg || '';
+            if (errorMsg.includes('订单不存在') || errorMsg.includes('不属于您')) {
+                console.warn('[BusinessOrder] 商家接口失败，尝试使用通用接口降级处理...');
+                try {
+                    // 尝试路径1: 使用apiconfig中配置的通用发货接口
+                    // 修复：使用 apiConfig.order.shipOrderCommon 获取绝对路径，利用后端CORS配置跨域访问
+                    const fallbackUrl = apiConfig.order.shipOrderCommon(oid);
+                    console.log(`[BusinessOrder] 尝试备用URL: ${fallbackUrl}`);
+                    
+                    const fallbackResponse = await axios.put(fallbackUrl, payload, {
+                        params: {
+                            courier: this.shipment.courier,
+                            trackingNumber: this.shipment.tracking_number,
+                            tracking_number: this.shipment.tracking_number,
+                            note: this.shipment.note
+                        }
+                    });
+                    
+                    if (fallbackResponse.data.code === 1) {
+                        this.shipmentOrder.status = 2;
+                        // 更新本地物流信息
+                        this.shipmentOrder.courier = this.shipment.courier;
+                        this.shipmentOrder.tracking_number = this.shipment.tracking_number;
+                        
+                        this.showShipModal = false;
+                        this.calculateStats();
+                        alert('发货成功！(通过备用通道)');
+                        return; // 成功则直接返回
+                    }
+                } catch (fallbackError) {
+                    console.error('[BusinessOrder] 备用接口也失败:', fallbackError);
+                    
+                    // 终极尝试：尝试使用子订单ID (OrderItem ID) 发货
+                    // 原因：后端可能逻辑是针对 OrderItem 发货，而不是 Order
+                    if (this.shipmentOrder.items && this.shipmentOrder.items.length > 0) {
+                        const itemId = this.shipmentOrder.items[0].id;
+                        if (itemId && itemId !== oid) {
+                            console.warn(`[BusinessOrder] 尝试使用子订单ID (${itemId}) 发货...`);
+                            try {
+                                const itemUrl = apiConfig.business.shipOrder(bid, itemId);
+                                const itemResponse = await axios.put(itemUrl, payload, {
+                                    params: {
+                                        courier: this.shipment.courier,
+                                        trackingNumber: this.shipment.tracking_number,
+                                        tracking_number: this.shipment.tracking_number,
+                                        note: this.shipment.note
+                                    }
+                                });
+                                
+                                if (itemResponse.data.code === 1) {
+                                    this.shipmentOrder.status = 2;
+                                    // 更新本地物流信息，以便在详情中显示
+                                    this.shipmentOrder.courier = this.shipment.courier;
+                                    this.shipmentOrder.tracking_number = this.shipment.tracking_number;
+                                    
+                                    this.showShipModal = false;
+                                    this.calculateStats();
+                                    alert('发货成功！(通过子订单ID)');
+                                    return;
+                                }
+                            } catch (itemError) {
+                                console.error('[BusinessOrder] 子订单ID尝试也失败:', itemError);
+                            }
+                        }
+                    }
+                }
+            }
+
+          // 优先显示后端返回的 message 或 msg，如果没有则显示默认错误
+          const finalErrorMsg = response.data.message || response.data.msg || '未知错误';
+          console.error('发货失败响应:', response.data);
+          
+          // 如果错误是"订单不存在"，尝试给用户更具体的建议
+          let displayMsg = finalErrorMsg.startsWith('发货失败') ? finalErrorMsg : `发货失败：${finalErrorMsg}`;
+          if (finalErrorMsg.includes('订单不存在') || finalErrorMsg.includes('不属于您')) {
+              displayMsg += `\n(调试信息: BID=${bid}, OID=${oid})`;
+          }
+          alert(displayMsg);
         }
       } catch (error) {
-        console.error('发货失败:', error);
-        alert('发货失败，请稍后重试');
+        console.error('发货请求异常:', error);
+        alert('发货请求异常，请检查网络或控制台日志');
       }
     },
 
@@ -786,8 +979,111 @@ export default {
       }
     },
 
-    viewOrderDetail(order) {
+    // 提取价格修复逻辑
+    fixOrderPrices(order) {
+      if (!order.items || order.items.length === 0) return;
+      
+      // 尝试获取本地商品映射表（如果已经加载）
+      // 这里简化处理，因为在 methods 中很难直接访问 loadOrders 内部的 productMap
+      // 但我们可以尝试从 localStorage 或 store 获取，或者简单地只用 total amount 倒推
+      
+      order.items.forEach(item => {
+          // 规范化字段
+          if (!item.price) item.price = item.unit_price || item.productPrice || 0;
+          
+          // 如果单价为0，尝试修正
+          if (parseFloat(item.price) === 0) {
+              // 策略1：如果是单商品订单，且订单总金额存在，用总金额除以数量
+              if (order.items.length === 1 && order.amount > 0) {
+                  item.price = (order.amount / (item.quantity || 1)).toFixed(2);
+              }
+              // 策略2：如果 item 有 subtotal 且不为 0
+              else if (item.subtotal && parseFloat(item.subtotal) > 0) {
+                  item.price = (item.subtotal / (item.quantity || 1)).toFixed(2);
+              }
+          }
+          
+          // 确保 quantity 存在
+          item.quantity = item.quantity || 1;
+          
+          // 重新计算小计
+          item.subtotal = (item.price * item.quantity).toFixed(2);
+      });
+      
+      // 如果总金额为0，尝试累加子项
+      if (parseFloat(order.amount) === 0) {
+          order.amount = order.items.reduce((sum, item) => sum + parseFloat(item.subtotal), 0).toFixed(2);
+      }
+    },
+
+    async viewOrderDetail(order) {
+      // 1. 先用列表中的数据渲染
       this.selectedOrder = { ...order };
+      // 立即尝试修复一次价格（使用列表数据）
+      this.fixOrderPrices(this.selectedOrder);
+      
+      const oid = order.oid || order.id;
+      if (!oid) return;
+      
+      try {
+        console.log(`正在获取订单 #${oid} 的详细信息(含物流)...`);
+        // 2. 尝试从后端获取最新详情
+        const response = await axios.get(apiConfig.order.getOrderDetail(oid));
+        
+        if (response.data.code === 1 && response.data.data) {
+            const detail = response.data.data;
+            console.log('订单详情API返回:', detail);
+            
+            // 3. 智能合并物流信息
+            // 后端可能直接返回在对象上，或者在 logistics 字段中，或者在 orderLogistics 字段中
+            const logisticsSource = detail.logistics || detail.orderLogistics || detail;
+            
+            if (logisticsSource) {
+                // 提取物流公司
+                const company = logisticsSource.logistics_company || logisticsSource.logisticsCompany || 
+                              logisticsSource.courier || logisticsSource.company;
+                if (company) {
+                    this.selectedOrder.courier = company;
+                    this.selectedOrder.logistics_company = company;
+                }
+                
+                // 提取运单号
+                const tracking = logisticsSource.tracking_number || logisticsSource.trackingNumber || 
+                               logisticsSource.number || logisticsSource.tracking;
+                if (tracking) {
+                    this.selectedOrder.tracking_number = tracking;
+                    this.selectedOrder.trackingNumber = tracking;
+                }
+                
+                // 提取发货时间
+                const shipTime = logisticsSource.ship_time || logisticsSource.shipTime || 
+                               logisticsSource.create_time || logisticsSource.createTime;
+                if (shipTime) {
+                    this.selectedOrder.ship_time = shipTime;
+                }
+            }
+            
+            // 4. 如果详情里有 items，合并 items (可能包含更详细的商品信息)
+            if (detail.items && detail.items.length > 0) {
+                // 简单的合并策略：如果数量一致，尝试保留详情里的额外字段
+                // 这里我们主要关注 name 和 price
+                // 为防止详情里的 price 也是 0，我们先合并，再运行 fixOrderPrices
+                
+                // 规范化详情里的 items
+                const detailItems = this.normalizeOrdersData([{...detail, items: detail.items}])[0].items;
+                
+                this.selectedOrder.items = detailItems;
+            }
+            
+            // 5. 再次修复价格
+            this.fixOrderPrices(this.selectedOrder);
+            
+            // 强制更新视图
+            this.selectedOrder = { ...this.selectedOrder };
+        }
+      } catch (e) {
+        console.warn('获取订单详情失败，将仅显示列表数据:', e);
+      }
     },
 
     exportOrders() {

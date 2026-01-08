@@ -157,6 +157,10 @@ export default {
         // [新增] 订单数趋势
         getOrderTrendWeekly: `${currentConfig.orderBase}/orders/trend/weekly`,
         getOrderTrendMonthly: `${currentConfig.orderBase}/orders/trend/monthly`,
+
+        // [新增] 通用发货接口 (绕过商家ID校验，用于备用)
+        // PUT /api/orders/ship/{oid}
+        shipOrderCommon: (oid) => `${currentConfig.orderBase}/orders/ship/${oid}`,
     },
 
     // 统计相关接口

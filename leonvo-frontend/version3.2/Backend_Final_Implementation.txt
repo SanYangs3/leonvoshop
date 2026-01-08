@@ -1,0 +1,222 @@
+
+================================================================================
+1. 数据库更新 (确保 rating 字段存在)
+================================================================================
+-- 确保 product 表有 rating 字段
+ALTER TABLE product ADD COLUMN rating INT DEFAULT 100 COMMENT '商品评分';
+
+-- 确保 order_logistics 表存在
+CREATE TABLE IF NOT EXISTS order_logistics (
+    id INT PRIMARY KEY AUTO_INCREMENT COMMENT '物流信息ID',
+    order_id INT NOT NULL COMMENT '订单ID',
+    logistics_company VARCHAR(100) NOT NULL COMMENT '物流公司',
+    tracking_number VARCHAR(50) NOT NULL COMMENT '运单号',
+    order_status TINYINT NOT NULL DEFAULT 1 COMMENT '订单状态快照',
+    remarks TEXT COMMENT '备注',
+    created_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_order_id (order_id)
+) COMMENT '订单物流信息表';
+
+
+================================================================================
+2. ProductMapper.xml (修复评分不保存的问题)
+================================================================================
+<!-- 在 updateProduct 的 SQL 中必须包含 rating 字段 -->
+<update id="updateProduct" parameterType="com.group.entity.Product">
+    UPDATE product
+    <set>
+        <if test="name != null">name = #{name},</if>
+        <if test="price != null">price = #{price},</if>
+        <if test="stock != null">stock = #{stock},</if>
+        <if test="description != null">description = #{description},</if>
+        <if test="CPU != null">CPU = #{CPU},</if>
+        <if test="GPU != null">GPU = #{GPU},</if>
+        <if test="storage != null">storage = #{storage},</if>
+        <if test="size != null">size = #{size},</if>
+        <if test="type != null">type = #{type},</if>
+        <if test="picture != null">picture = #{picture},</if>
+        <if test="status != null">status = #{status},</if>
+        <!-- 关键：添加 rating 更新 -->
+        <if test="rating != null">rating = #{rating},</if>
+    </set>
+    WHERE pid = #{pid}
+</update>
+
+
+================================================================================
+3. OrderedServiceImpl.java (修复发货和详情查询)
+================================================================================
+package com.group.service.impl;
+
+import com.group.entity.Ordered;
+import com.group.entity.OrderLogistics;
+import com.group.mapper.OrderedMapper;
+import com.group.mapper.OrderLogisticsMapper; // 确保创建了这个Mapper
+import com.group.service.OrderedService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.HashMap;
+import java.util.Map;
+
+@Service
+public class OrderedServiceImpl implements OrderedService {
+
+    @Autowired
+    private OrderedMapper orderedMapper;
+    
+    @Autowired
+    private OrderLogisticsMapper orderLogisticsMapper;
+
+    // ... 其他方法保持不变 ...
+
+    /**
+     * 商家发货 (修复状态检查逻辑)
+     */
+    @Transactional
+    @Override
+    public boolean shipOrder(Integer oid, String courier, String trackingNumber, String note) {
+        Ordered order = orderedMapper.getOrderById(oid);
+        if (order == null) {
+            throw new RuntimeException("订单不存在: " + oid);
+        }
+
+        // 允许状态为 1(待发货) 或 2(已发货，允许修改物流)
+        if (order.getStatus() != 1 && order.getStatus() != 2) {
+            throw new RuntimeException("当前状态不可发货/修改物流，状态码: " + order.getStatus());
+        }
+
+        // 1. 更新订单状态为已发货 (2)
+        order.setStatus(2);
+        // 如果实体类有 shipTime 字段，也更新它
+        // order.setShipTime(new Date());
+        orderedMapper.updateOrder(order);
+
+        // 2. 插入或更新物流信息
+        OrderLogistics logistics = orderLogisticsMapper.getByOrderId(oid);
+        if (logistics == null) {
+            logistics = new OrderLogistics();
+            logistics.setOrderId(oid);
+            logistics.setLogisticsCompany(courier);
+            logistics.setTrackingNumber(trackingNumber);
+            logistics.setOrderStatus(2);
+            logistics.setRemarks(note);
+            orderLogisticsMapper.insert(logistics);
+        } else {
+            logistics.setLogisticsCompany(courier);
+            logistics.setTrackingNumber(trackingNumber);
+            logistics.setRemarks(note);
+            orderLogisticsMapper.update(logistics);
+        }
+
+        return true;
+    }
+
+    /**
+     * 获取订单详情 (包含物流信息)
+     * 解决前端不显示物流和运单号的问题
+     */
+    @Override
+    public Ordered getOrderDetailById(Integer oid) {
+        // 1. 获取基本订单信息
+        Ordered order = orderedMapper.getOrderById(oid);
+        if (order == null) return null;
+
+        // 2. 获取物流信息
+        OrderLogistics logistics = orderLogisticsMapper.getByOrderId(oid);
+        
+        // 3. 将物流信息附加到订单对象上
+        // 方式A: 如果 Ordered 实体类有 transient 字段 (推荐)
+        if (logistics != null) {
+            // 假设 Ordered 类中添加了这些字段(不持久化到ordered表)
+            // order.setLogisticsCompany(logistics.getLogisticsCompany());
+            // order.setTrackingNumber(logistics.getTrackingNumber());
+            
+            // 方式B: 使用 Map 或扩展字段返回 (如果不想改 Entity)
+            // 这里我们假设前端会读取 orderLogistics 字段或者直接读取附加的属性
+            // 为了简单，我们可以在 Controller 层包装，或者在这里设置
+            // 如果 Ordered 继承了 HashMap 或者有扩展属性 map
+            Map<String, Object> logisticsInfo = new HashMap<>();
+            logisticsInfo.put("logistics_company", logistics.getLogisticsCompany());
+            logisticsInfo.put("tracking_number", logistics.getTrackingNumber());
+            logisticsInfo.put("ship_time", logistics.getCreatedTime());
+            
+            order.setLogistics(logisticsInfo); // 需要在 Ordered 实体中添加 private Map<String, Object> logistics;
+        }
+        
+        return order;
+    }
+}
+
+
+================================================================================
+4. Ordered.java 实体类增强 (支持物流信息返回)
+================================================================================
+// 在 Ordered 类中添加以下字段和 Getter/Setter
+import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.Map;
+
+public class Ordered {
+    // ... 原有字段 ...
+
+    // 添加物流信息字段 (不对应 ordered 表列，仅用于返回前端)
+    @JsonProperty("logistics") // 确保前端能通过 .logistics 访问
+    private Map<String, Object> logistics;
+    
+    // 或者直接添加扁平字段
+    @JsonProperty("logistics_company")
+    private String logisticsCompany;
+    
+    @JsonProperty("tracking_number")
+    private String trackingNumber;
+
+    // Getters and Setters
+    public Map<String, Object> getLogistics() { return logistics; }
+    public void setLogistics(Map<String, Object> logistics) { 
+        this.logistics = logistics; 
+        // 同时也设置扁平字段，双重保险
+        if (logistics != null) {
+            this.logisticsCompany = (String) logistics.get("logistics_company");
+            this.trackingNumber = (String) logistics.get("tracking_number");
+        }
+    }
+    
+    public String getLogisticsCompany() { return logisticsCompany; }
+    public void setLogisticsCompany(String logisticsCompany) { this.logisticsCompany = logisticsCompany; }
+    
+    public String getTrackingNumber() { return trackingNumber; }
+    public void setTrackingNumber(String trackingNumber) { this.trackingNumber = trackingNumber; }
+}
+
+
+================================================================================
+5. OrderLogisticsMapper.java (新增)
+================================================================================
+package com.group.mapper;
+
+import com.group.entity.OrderLogistics;
+import org.apache.ibatis.annotations.*;
+
+@Mapper
+public interface OrderLogisticsMapper {
+    
+    @Insert("INSERT INTO order_logistics(order_id, logistics_company, tracking_number, order_status, remarks) " +
+            "VALUES(#{orderId}, #{logisticsCompany}, #{trackingNumber}, #{orderStatus}, #{remarks})")
+    @Options(useGeneratedKeys = true, keyProperty = "id")
+    int insert(OrderLogistics logistics);
+
+    @Update("UPDATE order_logistics SET logistics_company=#{logisticsCompany}, tracking_number=#{trackingNumber}, remarks=#{remarks} WHERE id=#{id}")
+    int update(OrderLogistics logistics);
+
+    @Select("SELECT * FROM order_logistics WHERE order_id = #{orderId} LIMIT 1")
+    @Results({
+        @Result(property = "logisticsCompany", column = "logistics_company"),
+        @Result(property = "trackingNumber", column = "tracking_number"),
+        @Result(property = "orderStatus", column = "order_status"),
+        @Result(property = "orderId", column = "order_id"),
+        @Result(property = "createdTime", column = "created_time")
+    })
+    OrderLogistics getByOrderId(Integer orderId);
+}

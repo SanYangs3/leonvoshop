@@ -80,7 +80,7 @@
               <div class="product-icon">💻</div>
               <div class="product-info">
                 <div class="product-name">{{ product.name }}</div>
-                <div class="product-sales">销量: {{ product.sales_count || 0 }}件</div>
+                <!-- <div class="product-sales">销量: {{ product.sales_count || 0 }}件</div> -->
               </div>
               <div class="product-amount">¥{{ product.price }}</div>
             </div>
@@ -114,8 +114,8 @@
             <td>#{{ order.oid }}</td>
             <td>
               <div class="order-product">
-                {{ order.items?.[0]?.name || '商品' }}
-                <span v-if="order.items?.[0]?.quantity > 1" class="quantity">×{{ order.items[0].quantity }}</span>
+                {{ (order.items && order.items[0]) ? order.items[0].name : '商品' }}
+                <span v-if="order.items && order.items[0] && order.items[0].quantity > 1" class="quantity">×{{ order.items[0].quantity }}</span>
               </div>
             </td>
             <td>¥{{ order.amount }}</td>
@@ -240,6 +240,164 @@ export default {
           orders = ordersResponse.data.data || [];
         }
 
+        // 2.1 建立商品ID和名称映射表
+        const productMap = {};
+        const nameToPidMap = {}; // 新增：名称到PID的映射
+        products.forEach(p => {
+            if (p.pid) {
+                productMap[p.pid] = p;
+                if (p.name) nameToPidMap[p.name] = p.pid;
+            }
+        });
+
+        // 2.2 准备补全订单信息的逻辑
+        const detailPromises = [];
+
+        // 先扫描一遍，找出需要补全详情的订单
+        orders.forEach(order => {
+            let hasValidInfo = false;
+            
+            // 检查是否有有效的商品信息
+            if (order.items && Array.isArray(order.items) && order.items.length > 0) {
+                 // 只要有一个商品有名字且不是占位符，就认为有效
+                 const firstItem = order.items[0];
+                 if (firstItem.name && firstItem.name !== '商品' && firstItem.name !== '默认商品' && firstItem.name !== '未知商品') {
+                     hasValidInfo = true;
+                 }
+            } else if (order.product_name || order.productName) {
+                hasValidInfo = true;
+            }
+            
+            // 如果信息不全，且有OID，加入补全队列
+            if (!hasValidInfo && (order.oid || order.id)) {
+                const oid = order.oid || order.id;
+                // 尝试从本地 productMap 反查 (如果有 pid)
+                let foundInLocal = false;
+                if ((order.pid || order.productId) && productMap[order.pid || order.productId]) {
+                    // 如果本地有，直接补全，不用请求接口
+                    const p = productMap[order.pid || order.productId];
+                    if (!order.items || !order.items.length) {
+                        order.items = [{ name: p.name, quantity: order.quantity || 1, pid: p.pid }];
+                    } else {
+                        order.items[0].name = p.name;
+                        order.items[0].pid = p.pid;
+                    }
+                    order.productName = p.name;
+                    foundInLocal = true;
+                }
+                
+                // 如果本地也没找到，请求详情接口
+                if (!foundInLocal) {
+                    detailPromises.push(
+                        axios.get(apiConfig.order.getOrderDetail(oid))
+                            .then(res => {
+                                if (res.data.code === 1 && res.data.data) {
+                                    const detail = res.data.data;
+                                    // 提取商品名和ID
+                                    let name = '';
+                                    let pid = '';
+                                    let price = 0;
+                                    
+                                    if (detail.items && detail.items.length) {
+                                        name = detail.items[0].name;
+                                        pid = detail.items[0].id || detail.items[0].pid;
+                                        price = detail.items[0].price;
+                                    } else if (detail.product_name) {
+                                        name = detail.product_name;
+                                    }
+                                    
+                                    if (name) {
+                                        // 更新订单对象
+                                        order.productName = name;
+                                        if (!order.items || !order.items.length) {
+                                            order.items = [{ 
+                                                name: name, 
+                                                quantity: 1, 
+                                                pid: pid, 
+                                                price: price 
+                                            }];
+                                        } else {
+                                            order.items[0].name = name;
+                                            if (pid) order.items[0].pid = pid;
+                                            if (price) order.items[0].price = price;
+                                        }
+                                    }
+                                }
+                            })
+                            .catch(e => console.warn(`补全订单 ${oid} 详情失败`, e))
+                    );
+                }
+            }
+        });
+
+        // 等待所有详情补全完成
+        if (detailPromises.length > 0) {
+            console.log(`正在补全 ${detailPromises.length} 个订单的商品信息...`);
+            await Promise.allSettled(detailPromises);
+            console.log('订单信息补全完成，开始计算销量');
+        }
+
+        // 2.3 计算每个商品的销量 (确保在补全后执行)
+        const salesMap = {};
+        
+        orders.forEach(order => {
+            // 归一化处理 items
+            let items = [];
+            if (order.items && Array.isArray(order.items)) {
+                items = order.items;
+            } else if (order.products && Array.isArray(order.products)) {
+                items = order.products;
+            } else if (order.pid || order.productName) {
+                // 单商品结构
+                items = [{
+                    pid: order.pid,
+                    name: order.productName,
+                    quantity: order.quantity || 1
+                }];
+            }
+
+            items.forEach(item => {
+                const qty = parseInt(item.quantity || item.count || 1);
+                
+                // 1. 优先使用 PID 匹配
+                if (item.pid || item.id) {
+                    const pidStr = String(item.pid || item.id);
+                    salesMap[pidStr] = (salesMap[pidStr] || 0) + qty;
+                } 
+                // 2. 其次使用名称匹配 (去除空格，忽略大小写)
+                else if (item.name) {
+                    const cleanName = item.name.trim();
+                    // 尝试从 nameToPidMap 找 ID
+                    if (nameToPidMap[cleanName]) {
+                        const pidStr = String(nameToPidMap[cleanName]);
+                        salesMap[pidStr] = (salesMap[pidStr] || 0) + qty;
+                    } else {
+                        // 找不到 ID 就直接存名字
+                        salesMap[cleanName] = (salesMap[cleanName] || 0) + qty;
+                    }
+                }
+            });
+        });
+
+        console.log('销量统计结果:', salesMap);
+
+        // 将销量合并到商品数据中
+        products = products.map(p => {
+            const pidStr = String(p.pid);
+            // 尝试通过 ID 获取
+            let totalSales = salesMap[pidStr] || 0;
+            
+            // 尝试通过名称获取 (防止 ID 不匹配的情况)
+            if (p.name) {
+                totalSales += (salesMap[p.name.trim()] || 0);
+            }
+            
+            return {
+                ...p,
+                sales_count: totalSales || p.sales_count || 0
+            };
+        });
+
         // 3. 计算统计信息
         const totalSales = orders.reduce((sum, order) => sum + (order.amount || 0), 0);
 
@@ -268,15 +426,14 @@ export default {
           pendingOrders
         };
 
-        // 4. 获取订单趋势 (改为订单数趋势，支持本周/本月)
-        // 直接前端计算，绕过后端可能存在的SQL问题
-        const trendData = this.calculateOrderTrend(orders, this.salesRange); // salesRange now stores 'week' or 'month'
-        this.renderSalesChart(trendData);
-
-        // 5. 获取热门商品
+        // 5. 获取热门商品 (按销售额排序: 销量 * 价格)
         this.topProducts = products
-            .filter(p => p.status === 1)
-            .sort((a, b) => (b.sales_count || 0) - (a.sales_count || 0))
+            // .filter(p => p.status === 1) // 用户希望能看到所有热门商品，即使已下架
+            .sort((a, b) => {
+               const revenueA = (a.sales_count || 0) * (a.price || 0);
+               const revenueB = (b.sales_count || 0) * (b.price || 0);
+               return revenueB - revenueA;
+            })
             .slice(0, 4)
             .map(p => ({
               pid: p.pid,
@@ -293,20 +450,61 @@ export default {
               return timeB - timeA;
             })
             .slice(0, 5)
-            .map(order => ({
-              oid: order.oid,
-              amount: order.amount || 0,
-              status: order.status || 0,
-              order_time: order.order_time || order.orderTime,
-              items: order.items || [{ name: order.product_name || '商品', quantity: 1 }]
-            }));
+            .map(order => {
+              // 尝试从不同字段获取商品列表
+              let items = [];
+              if (order.items && order.items.length) items = order.items;
+              else if (order.products && order.products.length) items = order.products;
+              else if (order.orderItems && order.orderItems.length) items = order.orderItems;
+              else if (order.order_items && order.order_items.length) items = order.order_items;
+              else if (order.goods && order.goods.length) items = order.goods;
+              else if (order.product) items = [order.product];
+              
+              // 如果还是没有，尝试从扁平字段构建
+              if (items.length === 0) {
+                  // 优先使用 PID 反查
+                  if ((order.pid || order.productId) && productMap[order.pid || order.productId]) {
+                      const product = productMap[order.pid || order.productId];
+                      items = [{
+                          name: product.name,
+                          quantity: order.quantity || order.count || 1,
+                          pid: product.pid
+                      }];
+                  } 
+                  // 其次尝试使用名称字段
+                  else if (order.product_name || order.productName) {
+                      items = [{
+                          name: order.product_name || order.productName,
+                          quantity: order.quantity || order.count || 1
+                      }];
+                  }
+              }
+
+              return {
+                  oid: order.oid || order.id,
+                  amount: order.amount || 0,
+                  status: order.status || 0,
+                  order_time: order.order_time || order.orderTime,
+                  items: items.length ? items : [{ name: '商品', quantity: 1 }]
+              };
+            });
+            
+        // 4. 获取订单趋势 (放在最后渲染，确保DOM准备就绪)
+        // 必须先结束loading状态，让v-else显示出来，才能获取canvas context
+        this.loading = false;
+        this.$nextTick(() => {
+            const trendData = this.calculateOrderTrend(orders, this.salesRange);
+            this.renderSalesChart(trendData);
+        });
 
       } catch (error) {
         console.error('加载仪表盘数据失败:', error);
         this.useMockData();
-      } finally {
         this.loading = false;
-      }
+      } 
+      // finally {
+      //   this.loading = false; // Moved inside try/catch to handle render timing
+      // }
     },
 
     calculateOrderTrend(orders, rangeType) {

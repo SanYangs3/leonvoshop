@@ -153,3 +153,15 @@ INSERT INTO orderItem (oid, pid, name, price, quantity, bid) VALUES
 -- 更新有误的价格数据
 UPDATE orderItem SET price = 15999.00 WHERE id = 6; -- 修正雷蛇灵刃14价格
 UPDATE orderItem SET price = 7999.00 WHERE id = 11; -- 修正MacBook Air价格
+
+
+-- 插入商家补充信息数据，对应business表中的8个商家
+INSERT INTO businessInfo (bid, status, reg_time, contact_person, contact_phone, contact_email, address, description) VALUES
+(1, 1, '2023-01-15', '张经理', '13800010001', 'huawei@example.com', '广东省深圳市龙岗区坂田华为基地', '华为官方旗舰店，提供华为全系列电子产品'),
+(2, 1, '2023-02-20', '王店长', '13800020002', 'apple@example.com', '北京市朝阳区三里屯苹果专卖店', '苹果官方授权店，销售苹果全系列产品'),
+(3, 1, '2023-03-10', '李经理', '13800030003', 'dell@example.com', '上海市浦东新区张江高科技园区', '戴尔电脑官方商城，专业销售戴尔电脑产品'),
+(4, 1, '2023-03-25', '刘总监', '13800040004', 'lenovo@example.com', '北京市海淀区上地信息产业基地', '联想官方授权店，提供联想全系列产品'),
+(5, 1, '2023-04-05', '陈经理', '13800050005', 'xiaomi@example.com', '北京市海淀区小米科技园', '小米官方旗舰店，销售小米生态链产品'),
+(6, 1, '2023-05-12', '赵店长', '13800060006', 'asus@example.com', '广东省深圳市福田区华强北', '华硕电脑专卖店，专业游戏本销售'),
+(7, 1, '2023-06-18', '钱经理', '13800070007', 'razer@example.com', '上海市静安区南京西路商圈', '雷蛇官方授权店，电竞外设专业销售'),
+(8, 1, '2023-07-22', '孙总监', '13800080008', 'microsoft@example.com', '北京市朝阳区望京微软大厦', '微软官方商城，销售Surface等微软产品');
