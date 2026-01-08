@@ -17,7 +17,7 @@ SET FOREIGN_KEY_CHECKS = 1;
 
 -- 1. 插入用户数据 (10-30条)
 INSERT INTO user (username, password, email, phone, status, avatar, role) VALUES
-('小绿泡泡', '123456', 'zhangsan@example.com', '13800138001', 1, 'https://randomuser.me/api/portraits/men/1.jpg', 'user'),
+('张三', '$2a$10$ABC123', 'zhangsan@example.com', '13800138001', 1, 'https://randomuser.me/api/portraits/men/1.jpg', 'user'),
 ('李四', '$2a$10$DEF456', 'lisi@example.com', '13800138002', 1, 'https://randomuser.me/api/portraits/women/2.jpg', 'user'),
 ('王五', '$2a$10$GHI789', 'wangwu@example.com', '13800138003', 1, 'https://randomuser.me/api/portraits/men/3.jpg', 'user'),
 ('赵六', '$2a$10$JKL012', 'zhaoliu@example.com', '13800138004', 1, 'https://randomuser.me/api/portraits/women/4.jpg', 'user'),
@@ -30,7 +30,7 @@ INSERT INTO user (username, password, email, phone, status, avatar, role) VALUES
 
 -- 2. 插入商家数据
 INSERT INTO business (bname, password) VALUES
-('华为官方旗舰店', '123456'),
+('华为官方旗舰店', '$2a$10$123ABC'),
 ('苹果专卖店', '$2a$10$456DEF'),
 ('戴尔电脑商城', '$2a$10$789GHI'),
 ('联想官方店', '$2a$10$012JKL'),
