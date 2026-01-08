@@ -297,6 +297,7 @@ ALTER TABLE cart ADD UNIQUE INDEX idx_uid_pid (uid, pid);
 ```
 
 ```
+//////废弃
 -- 新增短信验证码的表，用于存储和验证短信验证码
 CREATE TABLE `sms_verification` (
   `id` int NOT NULL AUTO_INCREMENT COMMENT '主键ID',
@@ -314,5 +315,48 @@ CREATE TABLE `sms_verification` (
   KEY `idx_phone_used` (`phone`, `used`),
   KEY `idx_expire_time` (`expire_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='短信验证码表';
+/// 这版废弃！！！！！！！！！！！！！！
+
+用这版本
+-- 删除已创建的表（如果存在）
+DROP TABLE IF EXISTS order_logistics;
+
+-- 创建订单物流信息表（不含订单状态和备注字段）
+CREATE TABLE order_logistics (
+    id INT PRIMARY KEY AUTO_INCREMENT COMMENT '物流信息ID',
+    order_id INT NOT NULL COMMENT '订单ID（外键，关联ordered表的oid）',
+    logistics_company VARCHAR(100) NOT NULL COMMENT '物流公司',
+    tracking_number VARCHAR(50) NOT NULL COMMENT '运单号',
+    created_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    
+    -- 添加外键约束，关联ordered表的oid列
+    CONSTRAINT fk_order_logistics_order_id 
+        FOREIGN KEY (order_id) 
+        REFERENCES ordered(oid)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    
+    -- 添加唯一约束，确保一个订单只有一个物流记录
+    CONSTRAINT uk_order_id UNIQUE (order_id),
+    
+    -- 添加索引
+    INDEX idx_tracking_number (tracking_number),
+    INDEX idx_logistics_company (logistics_company),
+    INDEX idx_created_time (created_time)
+) COMMENT '订单物流信息表';
+
+-- 为现有订单插入物流信息数据（只包含必要字段）
+INSERT INTO order_logistics (order_id, logistics_company, tracking_number) VALUES
+(1, '顺丰速运', 'SF12345678901'),
+(2, '京东物流', 'JD98765432101'),
+(3, '中通快递', 'ZT56789012345'),
+(4, '圆通速递', 'YT34567890123'),
+(5, '德邦物流', 'DB1234567890'),
+(6, '韵达快递', 'YD78901234567'),
+(7, 'EMS', 'EMS123456789CN'),
+(8, '申通快递', 'ST45678901234'),
+(9, '顺丰速运', 'SF23456789012'),
+(10, '中通快递', 'ZT67890123456');
 ```
 

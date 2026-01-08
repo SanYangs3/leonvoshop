@@ -1,0 +1,132 @@
+// ==========================================
+// 1. 实体类: com.group.entity.Product
+// ==========================================
+package com.group.entity;
+
+import lombok.Data;
+import java.math.BigDecimal;
+
+@Data
+public class Product {
+    private Integer pid;
+    private String name;
+    private BigDecimal price;
+    private Integer stock;
+    private String description;
+    private String picture;
+    private String type;
+    private String CPU;
+    private String GPU;
+    private String storage;
+    private String size;
+    private Integer status; // 1: 上架, 0: 下架
+    private Integer rating; // 评分/热度
+    // 其他字段...
+}
+
+// ==========================================
+// 2. Mapper接口: com.group.mapper.ProductMapper
+// ==========================================
+package com.group.mapper;
+
+import com.group.entity.Product;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Update;
+
+@Mapper
+public interface ProductMapper {
+    
+    // 更新商品信息，务必包含 rating 字段
+    @Update("UPDATE product SET name=#{name}, price=#{price}, stock=#{stock}, " +
+            "description=#{description}, picture=#{picture}, type=#{type}, " +
+            "CPU=#{CPU}, GPU=#{GPU}, storage=#{storage}, size=#{size}, " +
+            "status=#{status}, rating=#{rating} " + // 确保这里更新了 rating
+            "WHERE pid=#{pid}")
+    int update(Product product);
+
+    // 验证商品是否属于该商家 (可选，但推荐)
+    // @Select("SELECT count(*) FROM business_product WHERE bid=#{bid} AND pid=#{pid}")
+    // int checkOwnership(@Param("bid") Integer bid, @Param("pid") Integer pid);
+}
+
+// ==========================================
+// 3. Service接口与实现: com.group.service.ProductService
+// ==========================================
+package com.group.service.impl;
+
+import com.group.entity.Product;
+import com.group.mapper.ProductMapper;
+import com.group.service.ProductService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class ProductServiceImpl implements ProductService {
+
+    @Autowired
+    private ProductMapper productMapper;
+
+    @Override
+    @Transactional
+    public void updateProduct(Product product) {
+        // 这里可以添加校验逻辑，比如检查商品ID是否存在
+        // 或者检查商品是否属于当前商家
+        
+        int rows = productMapper.update(product);
+        if (rows <= 0) {
+            throw new RuntimeException("更新商品失败，可能是商品ID不存在");
+        }
+    }
+}
+
+// ==========================================
+// 4. Controller: com.group.controller.BusinessProductController (或 ProductController)
+// ==========================================
+package com.group.controller;
+
+import com.group.entity.Product;
+import com.group.entity.Result;
+import com.group.service.ProductService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/business/products") // 根据前端 apiConfig 调整路径
+public class BusinessProductController {
+
+    @Autowired
+    private ProductService productService;
+
+    /**
+     * 更新商品信息
+     * 前端调用: axios.put(apiConfig.business.updateProduct(bid), updateData)
+     * URL: /api/business/products/update/{bid}
+     */
+    @PutMapping("/update/{bid}")
+    public Result<String> updateProduct(@PathVariable Integer bid, @RequestBody Product product) {
+        try {
+            // 可以在这里校验 bid 和 product.pid 的关联关系
+            // ...
+            
+            productService.updateProduct(product);
+            return Result.success("更新成功");
+        } catch (Exception e) {
+            return Result.error("更新失败: " + e.getMessage());
+        }
+    }
+    
+    // 如果有专门的推广接口 promoteProduct，也需要确保它更新了 rating
+    /*
+    @PostMapping("/promote/{bid}/{pid}")
+    public Result<String> promoteProduct(@PathVariable Integer bid, @PathVariable Integer pid, @RequestBody Map<String, Integer> params) {
+        Integer points = params.get("points");
+        // 1. 扣除商家积分...
+        // 2. 增加商品 rating
+        Product product = productService.getById(pid);
+        product.setRating(product.getRating() + points);
+        productService.updateProduct(product);
+        return Result.success("推广成功");
+    }
+    */
+}
