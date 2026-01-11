@@ -297,7 +297,7 @@ ALTER TABLE cart ADD UNIQUE INDEX idx_uid_pid (uid, pid);
 ```
 
 ```
-//////废弃
+
 -- 新增短信验证码的表，用于存储和验证短信验证码
 CREATE TABLE `sms_verification` (
   `id` int NOT NULL AUTO_INCREMENT COMMENT '主键ID',
@@ -315,9 +315,9 @@ CREATE TABLE `sms_verification` (
   KEY `idx_phone_used` (`phone`, `used`),
   KEY `idx_expire_time` (`expire_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='短信验证码表';
-/// 这版废弃！！！！！！！！！！！！！！
 
-用这版本
+
+
 -- 删除已创建的表（如果存在）
 DROP TABLE IF EXISTS order_logistics;
 
@@ -360,3 +360,15 @@ INSERT INTO order_logistics (order_id, logistics_company, tracking_number) VALUE
 (10, '中通快递', 'ZT67890123456');
 ```
 
+ -- 学生认证
+ CREATE TABLE `student_verification` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `uid` int(11) NOT NULL,
+  `school` varchar(255) DEFAULT NULL,
+  `student_id` varchar(100) DEFAULT NULL,
+  `card_image` LONGTEXT DEFAULT NULL,
+  `status` int(11) DEFAULT '0' COMMENT '0: Pending, 1: Approved, 2: Rejected',
+  `create_time` datetime DEFAULT NULL,
+  `update_time` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
