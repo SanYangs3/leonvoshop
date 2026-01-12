@@ -1,0 +1,69 @@
+
+================================================================================
+1. 修复商品评分不保存 (ProductMapper.xml)
+================================================================================
+<!-- 请在 ProductMapper.xml 中找到 updateProduct 方法，确保包含 rating 字段 -->
+<!-- 之前可能只有 heat 或其他字段，必须显式添加 rating -->
+
+<update id="updateProduct" parameterType="com.group.entity.Product">
+    UPDATE product
+    <set>
+        <if test="name != null">name = #{name},</if>
+        <if test="price != null">price = #{price},</if>
+        <if test="stock != null">stock = #{stock},</if>
+        <if test="description != null">description = #{description},</if>
+        <if test="CPU != null">CPU = #{CPU},</if>
+        <if test="GPU != null">GPU = #{GPU},</if>
+        <if test="storage != null">storage = #{storage},</if>
+        <if test="size != null">size = #{size},</if>
+        <if test="type != null">type = #{type},</if>
+        <if test="picture != null">picture = #{picture},</if>
+        <if test="status != null">status = #{status},</if>
+        <!-- 【关键修改】添加这行以保存评分 -->
+        <if test="rating != null">rating = #{rating},</if>
+    </set>
+    WHERE pid = #{pid}
+</update>
+
+
+================================================================================
+2. 修复订单详情不显示物流 (OrderedServiceImpl.java)
+================================================================================
+// 请只修改 getOrderDetailById 方法，不要动已经正常的 shipOrder 方法
+
+@Override
+public Ordered getOrderDetailById(Integer oid) {
+    // 1. 获取基本订单信息
+    Ordered order = orderedMapper.getOrderById(oid);
+    if (order == null) return null;
+
+    // 2. 【关键修改】获取物流信息并附加到订单对象
+    try {
+        OrderLogistics logistics = orderLogisticsMapper.getByOrderId(oid);
+        if (logistics != null) {
+            // 使用 Map 封装物流信息返回给前端
+            Map<String, Object> logisticsInfo = new HashMap<>();
+            logisticsInfo.put("logistics_company", logistics.getLogisticsCompany());
+            logisticsInfo.put("tracking_number", logistics.getTrackingNumber());
+            logisticsInfo.put("ship_time", logistics.getCreatedTime());
+            
+            // 确保 Ordered 实体类中有 setLogistics(Map) 方法
+            // 或者使用扩展字段
+            order.setLogistics(logisticsInfo); 
+        }
+    } catch (Exception e) {
+        System.err.println("获取物流信息失败: " + e.getMessage());
+        // 不影响主流程
+    }
+    
+    return order;
+}
+
+// 注意：需要在 Ordered.java 实体类中添加 logistics 字段
+/*
+    @Transient // 或者 @TableField(exist = false)
+    private Map<String, Object> logistics;
+
+    public Map<String, Object> getLogistics() { return logistics; }
+    public void setLogistics(Map<String, Object> logistics) { this.logistics = logistics; }
+*/
