@@ -372,3 +372,58 @@ INSERT INTO order_logistics (order_id, logistics_company, tracking_number) VALUE
   `update_time` datetime DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- 首先检查是否已存在同名触发器，先删除
+DROP TRIGGER IF EXISTS after_user_insert;
+
+-- 创建触发器：用户注册后自动创建identity记录
+DELIMITER $$
+
+CREATE TRIGGER after_user_insert
+AFTER INSERT ON user
+FOR EACH ROW
+BEGIN
+    -- 为新用户创建默认identity记录
+    INSERT INTO identity (uid, level, student, points)
+    VALUES (NEW.uid, 1, FALSE, 0);  -- level=1, student=0(false), points=0
+END$$
+
+DELIMITER ;
+
+-- 测试触发器
+-- 插入一个新用户
+INSERT INTO user (username, password, email, phone, status, role, avatar)
+VALUES ('trigger_test', 'test123456', 'test@example.com', '13800138111', 1, 'user', 'default_avatar.jpg');
+
+-- 检查是否自动创建了identity记录
+SELECT 
+    u.uid,
+    u.username,
+    u.create_time,
+    i.iid,
+    i.level,
+    i.student,
+    i.points,
+    i.uid as identity_uid
+FROM user u
+LEFT JOIN identity i ON u.uid = i.uid
+WHERE u.username = 'trigger_test'
+ORDER BY u.create_time DESC
+LIMIT 5;
+
+-- 也可以查看最新的用户和他们的identity
+SELECT 
+    u.uid,
+    u.username,
+    u.email,
+    i.level,
+    CASE i.student 
+        WHEN TRUE THEN '是' 
+        ELSE '否' 
+    END as 是否学生,
+    i.points as 积分
+FROM user u
+LEFT JOIN identity i ON u.uid = i.uid
+ORDER BY u.uid DESC
+LIMIT 10;

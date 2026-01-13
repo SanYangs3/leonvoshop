@@ -1,0 +1,59 @@
+--学生认证
+CREATE TABLE `student_verification` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `uid` int(11) NOT NULL,
+  `school` varchar(255) DEFAULT NULL,
+  `student_id` varchar(100) DEFAULT NULL,
+  `card_image` LONGTEXT DEFAULT NULL,
+  `status` int(11) DEFAULT '0' COMMENT '0: Pending, 1: Approved, 2: Rejected',
+  `create_time` datetime DEFAULT NULL,
+  `update_time` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+
+-- 删除已创建的表（如果存在）
+DROP TABLE IF EXISTS order_logistics;
+
+-- 创建订单物流信息表（使用正确的外键名称）
+CREATE TABLE order_logistics (
+    id INT PRIMARY KEY AUTO_INCREMENT COMMENT '物流信息ID',
+    order_id INT NOT NULL COMMENT '订单ID（外键，关联ordered表的oid）',
+    logistics_company VARCHAR(100) NOT NULL COMMENT '物流公司',
+    tracking_number VARCHAR(50) NOT NULL COMMENT '运单号',
+    order_status TINYINT NOT NULL DEFAULT 1 COMMENT '订单状态：1=未发货，2=已发货，3=已完成，4=已取消',
+    remarks TEXT COMMENT '订单备注',
+    created_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    
+    -- 添加正确的外键约束，关联ordered表的oid列
+    CONSTRAINT fk_order_logistics_order_id 
+        FOREIGN KEY (order_id) 
+        REFERENCES ordered(oid)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    
+    -- 添加唯一约束，确保一个订单只有一个物流记录
+    CONSTRAINT uk_order_id UNIQUE (order_id),
+    
+    -- 添加索引
+    INDEX idx_tracking_number (tracking_number),
+    INDEX idx_logistics_company (logistics_company),
+    INDEX idx_order_status (order_status),
+    INDEX idx_created_time (created_time)
+) COMMENT '订单物流信息表（包含订单状态）';
+
+-- 为现有订单插入物流信息数据
+-- 注意：order_id对应的是ordered表中的oid
+INSERT INTO order_logistics (order_id, logistics_company, tracking_number, order_status, remarks) VALUES
+(1, '顺丰速运', 'SF12345678901', 2, '工作日配送，请勿放快递柜'),
+(2, '京东物流', 'JD98765432101', 3, '需要发票，请包装完好'),
+(3, '中通快递', 'ZT56789012345', 1, '尽快发货，收货人在家办公'),
+(4, '圆通速递', 'YT34567890123', 2, '请妥善包装，内有易碎品'),
+(5, '德邦物流', 'DB1234567890', 3, '礼品包装，需要贺卡'),
+(6, '韵达快递', 'YD78901234567', 2, '请电话联系收货人'),
+(7, 'EMS', 'EMS123456789CN', 1, '下午配送，收货人晚上在家'),
+(8, '申通快递', 'ST45678901234', 3, '小区有门禁，请提前电话'),
+(9, '顺丰速运', 'SF23456789012', 2, '公司采购，需要送货上门'),
+(10, '中通快递', 'ZT67890123456', 1, '学生优惠，请确认身份');
